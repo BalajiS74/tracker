@@ -1,0 +1,126 @@
+{
+    "busID": "BUS789",
+    "routeName": "SCAD to Alangulam",
+    "stops": [
+        {
+            "name": "Alangulam New bus stand",
+            "lat": 8.8669003,
+            "lng": 77.4949725
+        },
+        {
+            "name": "Alangulam Old Bus Stand",
+            "lat": 8.8649193,
+            "lng": 77.5005147
+        },
+        {
+            "name": "Nallur Villakku",
+            "lat": 8.8596431,
+            "lng": 77.5137975
+        },
+        {
+            "name": "Maranthai",
+            "lat": 8.8182097,
+            "lng": 77.5639769
+        },
+        {
+            "name": "nalankurichi bus stop",
+            "lat": 8.8168514,
+            "lng": 77.5460379
+        },
+        {
+            "name": "Udayampuli old bus stand",
+            "lat": 8.8011802,
+            "lng": 77.5447229
+        },
+        {
+            "name": "Udayampuli new bus stand",
+            "lat": 8.80059,
+            "lng": 77.542693
+        },
+        {
+            "name": "kathapuram stop",
+            "lat": 8.7941082,
+            "lng": 77.5330692
+        },
+        {
+            "name": "odaimarichan bus stop",
+            "lat": 8.7944059,
+            "lng": 77.5313206
+        },
+        {
+            "name": "Keela Elanthaikulam",
+            "lat": 8.7714501,
+            "lng": 77.5502839
+        },
+        {
+            "name": "thalarkulam",
+            "lat": 8.7701172,
+            "lng": 77.5359661
+        },
+        {
+            "name": "singam paarai bulk stop",
+            "lat": 8.7490269,
+            "lng": 77.5256398
+        },
+        {
+            "name": "Vambalanthanmukku",
+            "lat": 8.750058,
+            "lng": 77.5322046
+        },
+        {
+            "name": "mukkudal health center",
+            "lat": 8.7382676,
+            "lng": 77.5242669
+        },
+        {
+            "name": "Mukkudal Bus Stand",
+            "lat": 8.7367455,
+            "lng": 77.5223224
+        },
+        {
+            "name": "mukkudal bulk",
+            "lat": 8.7362383,
+            "lng": 77.5234735
+        },
+        {
+            "name": "mela ariyanayagi puram",
+            "lat": 8.7229368,
+            "lng": 77.5428353
+        },
+        {
+            "name": "kela ariyanayagi puram",
+            "lat": 8.7201261,
+            "lng": 77.5462748
+        },
+        {
+            "name": "Arasangulam bus stop",
+            "lat": 8.7153673,
+            "lng": 77.5548411
+        },
+        {
+            "name": "sangathiradu vilakku",
+            "lat": 8.7114159,
+            "lng": 77.5669859
+        },
+        {
+            "name": "Gandhi Park",
+            "lat": 8.6876598,
+            "lng": 77.566306
+        },
+        {
+            "name": "Cheranmahadevi Roundtana",
+            "lat": 8.6747275,
+            "lng": 77.5649246
+        },
+        {
+            "name": "scad polytechnic college",
+            "lat": 8.6635487,
+            "lng": 77.5673165
+        },
+        {
+            "name": "Vk Puram",
+            "lat": 8.713928,
+            "lng": 77.3896484
+        }
+    ]
+}
