@@ -34,12 +34,10 @@ const BusDetails = ({ route }) => {
   const [busInfo, setBusInfo] = useState(null);
   const [activeTab, setActiveTab] = useState("route");
 
-  // Blinking animation setup
   const blinkAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Blinking animation (opacity)
     const blink = Animated.loop(
       Animated.sequence([
         Animated.timing(blinkAnim, {
@@ -57,7 +55,6 @@ const BusDetails = ({ route }) => {
       ])
     );
 
-    // Pulsing animation (scale)
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -99,7 +96,7 @@ const BusDetails = ({ route }) => {
         const data = await res.json();
         setBusInfo(data);
 
-        if (!data || !data.latitude || !data.longitude) {
+        if (!data?.latitude || !data?.longitude) {
           setCurrentStopIdx(-1);
           setLoading(false);
           return;
@@ -108,23 +105,14 @@ const BusDetails = ({ route }) => {
         let minDist = Infinity;
         let nearestIdx = -1;
         routeData.stops.forEach((stop, idx) => {
-          const d = calculateDistance(
-            data.latitude,
-            data.longitude,
-            stop.lat,
-            stop.lng
-          );
+          const d = calculateDistance(data.latitude, data.longitude, stop.lat, stop.lng);
           if (d < minDist) {
             minDist = d;
             nearestIdx = idx;
           }
         });
 
-        if (
-          minDist < 300 &&
-          nearestIdx > lastConfirmedStopIdx &&
-          nearestIdx - lastConfirmedStopIdx === 1
-        ) {
+        if (minDist < 300 && nearestIdx > lastConfirmedStopIdx) {
           setLastConfirmedStopIdx(nearestIdx);
         }
 
@@ -156,9 +144,7 @@ const BusDetails = ({ route }) => {
   useEffect(() => {
     if (
       lastConfirmedStopIdx >= 0 &&
-      routeData &&
-      routeData.stops &&
-      routeData.stops[lastConfirmedStopIdx]
+      routeData?.stops[lastConfirmedStopIdx]
     ) {
       const stopName = routeData.stops[lastConfirmedStopIdx].name;
       Speech.speak(`Next stop is ${stopName}`);
@@ -167,34 +153,36 @@ const BusDetails = ({ route }) => {
 
   const renderStopItem = ({ item, index }) => {
     const isCurrent = index === currentStopIdx;
-    
+
     return (
       <View style={[styles.stopRow, isCurrent && styles.activeStopRow]}>
         <View style={styles.dotContainer}>
           {isCurrent ? (
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.dot,
                 styles.currentDot,
                 {
                   opacity: blinkAnim,
                   transform: [{ scale: pulseAnim }],
-                }
-              ]} 
+                },
+              ]}
             />
           ) : (
-            <View 
+            <View
               style={[
                 styles.dot,
-                index < currentStopIdx ? styles.pastDot : styles.upcomingDot
-              ]} 
+                index < currentStopIdx ? styles.pastDot : styles.upcomingDot,
+              ]}
             />
           )}
           {index !== routeData.stops.length - 1 && (
-            <View style={[
-              styles.line, 
-              index < currentStopIdx ? styles.pastLine : styles.upcomingLine
-            ]} />
+            <View
+              style={[
+                styles.line,
+                index < currentStopIdx ? styles.pastLine : styles.upcomingLine,
+              ]}
+            />
           )}
         </View>
         <View style={styles.stopInfo}>
@@ -219,7 +207,7 @@ const BusDetails = ({ route }) => {
   }
 
   const status = busInfo?.speed < 1
-    ? busInfo?.ignition === false || busInfo?.ignition === 0
+    ? !busInfo?.ignition
       ? "Parked"
       : "Stopped"
     : "Moving";
@@ -232,16 +220,16 @@ const BusDetails = ({ route }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.tabContainer}>
-        <TouchableOpacity 
-          onPress={() => setActiveTab("route")} 
+        <TouchableOpacity
+          onPress={() => setActiveTab("route")}
           style={[styles.tabButton, activeTab === "route" && styles.activeTab]}
         >
           <Text style={[styles.tabText, activeTab === "route" && styles.activeTabText]}>
             Route
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          onPress={() => setActiveTab("details")} 
+        <TouchableOpacity
+          onPress={() => setActiveTab("details")}
           style={[styles.tabButton, activeTab === "details" && styles.activeTab]}
         >
           <Text style={[styles.tabText, activeTab === "details" && styles.activeTabText]}>
@@ -280,9 +268,7 @@ const BusDetails = ({ route }) => {
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Heading:</Text>
-              <Text style={styles.detailValue}>
-                {busInfo?.heading}°
-              </Text>
+              <Text style={styles.detailValue}>{busInfo?.heading}°</Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Next Stop:</Text>
@@ -298,57 +284,22 @@ const BusDetails = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f9ff",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f9ff",
-  },
-  loadingText: {
-    marginTop: 16,
-    color: "#4a90e2",
-    fontSize: 16,
-    fontWeight: "500",
-  },
+  container: { flex: 1, backgroundColor: "#f5f9ff" },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { marginTop: 16, color: "#4a90e2", fontSize: 16 },
   tabContainer: {
     flexDirection: "row",
     justifyContent: "center",
     backgroundColor: "#ffffff",
     borderBottomWidth: 1,
     borderBottomColor: "#e6e6e6",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  tabButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-  },
-  activeTab: {
-    borderBottomWidth: 3,
-    borderBottomColor: "#4a90e2",
-  },
-  tabText: {
-    fontWeight: "600",
-    color: "#888",
-    fontSize: 16,
-  },
-  activeTabText: {
-    color: "#4a90e2",
-  },
-  contentContainer: {
-    flex: 1,
-    padding: 16,
-  },
-  listContainer: {
-    paddingBottom: 20,
-  },
+  tabButton: { paddingVertical: 16, paddingHorizontal: 32 },
+  activeTab: { borderBottomWidth: 3, borderBottomColor: "#4a90e2" },
+  tabText: { fontWeight: "600", color: "#888", fontSize: 16 },
+  activeTabText: { color: "#4a90e2" },
+  contentContainer: { flex: 1, padding: 16 },
+  listContainer: { paddingBottom: 20 },
   stopRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -356,85 +307,28 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     backgroundColor: "#ffffff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
   },
   activeStopRow: {
     backgroundColor: "#f0f7ff",
     borderLeftWidth: 4,
     borderLeftColor: "#4a90e2",
-    shadowColor: "#4a90e2",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  dotContainer: {
-    width: 36,
-    alignItems: "center",
-    marginRight: 12,
-  },
-  dot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 3,
-    zIndex: 2,
-  },
-  currentDot: {
-    backgroundColor: "#4a90e2",
-    borderColor: "#2a70c2",
-  },
-  pastDot: {
-    backgroundColor: "#d1d1d1",
-    borderColor: "#a1a1a1",
-  },
-  upcomingDot: {
-    backgroundColor: "#ffffff",
-    borderColor: "#d1e3ff",
-  },
-  line: {
-    width: 2,
-    flex: 1,
-    marginTop: 4,
-    marginBottom: -20,
-  },
-  pastLine: {
-    backgroundColor: "#d1d1d1",
-  },
-  upcomingLine: {
-    backgroundColor: "#d1e3ff",
-  },
-  stopInfo: {
-    flex: 1,
-  },
-  stopName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 4,
-  },
-  activeStopName: {
-    color: "#2a70c2",
-    fontWeight: "700",
-  },
-  coordinates: {
-    fontSize: 13,
-    color: "#777",
-    fontFamily: 'monospace',
-  },
+  dotContainer: { width: 36, alignItems: "center", marginRight: 12 },
+  dot: { width: 20, height: 20, borderRadius: 10, borderWidth: 3 },
+  currentDot: { backgroundColor: "#4a90e2", borderColor: "#2a70c2" },
+  pastDot: { backgroundColor: "#d1d1d1", borderColor: "#a1a1a1" },
+  upcomingDot: { backgroundColor: "#ffffff", borderColor: "#d1e3ff" },
+  line: { width: 2, flex: 1, marginTop: 4, marginBottom: -20 },
+  pastLine: { backgroundColor: "#d1d1d1" },
+  upcomingLine: { backgroundColor: "#d1e3ff" },
+  stopInfo: { flex: 1 },
+  stopName: { fontSize: 16, fontWeight: "600", color: "#333", marginBottom: 4 },
+  activeStopName: { color: "#2a70c2", fontWeight: "700" },
+  coordinates: { fontSize: 13, color: "#777", fontFamily: "monospace" },
   detailsContainer: {
     backgroundColor: "#ffffff",
     borderRadius: 12,
     padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
   },
   detailRow: {
     flexDirection: "row",
@@ -443,24 +337,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
   },
-  detailLabel: {
-    color: "#666",
-    fontWeight: "600",
-    fontSize: 15,
-  },
-  detailValue: {
-    color: "#333",
-    fontWeight: "500",
-    fontSize: 15,
-  },
-  movingStatus: {
-    color: "#2ecc71",
-    fontWeight: "600",
-  },
-  nextStop: {
-    color: "#4a90e2",
-    fontWeight: "600",
-  },
+  detailLabel: { color: "#666", fontWeight: "600", fontSize: 15 },
+  detailValue: { color: "#333", fontWeight: "500", fontSize: 15 },
+  movingStatus: { color: "#2ecc71", fontWeight: "600" },
+  nextStop: { color: "#4a90e2", fontWeight: "600" },
 });
 
 export default BusDetails;

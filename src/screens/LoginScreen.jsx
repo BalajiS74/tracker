@@ -1,28 +1,55 @@
-// src/screens/LoginScreen.js
 import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { AuthContext } from '../context/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login } = useContext(AuthContext); // ⬅️ use context method
+  const { login } = useContext(AuthContext);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password');
+      Toast.show({
+        type: 'error',
+        text1: 'Missing Fields',
+        text2: 'Please enter both email and password',
+      });
       return;
     }
 
-    // Replace this with real auth API call
-    console.log('Login attempted with:', email, password);
+    try {
+      const response = await fetch('https://trakerbackend.vercel.app/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const dummyUser = {
-      name: 'John Doe',
-      email: email,
-    };
+      const data = await response.json();
 
-    login(dummyUser); // ⬅️ login using context
+      if (response.status === 200) {
+        await login(data.user, data.userToken);
+        Toast.show({
+          type: 'success',
+          text1: 'Login Successful',
+          text2: `Welcome back, ${data.user.name}`,
+        });
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Unauthorized',
+          text2: data.message || 'Invalid email or password',
+        });
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Server Error',
+        text2: 'Unable to connect to server',
+      });
+    }
   };
 
   return (
@@ -56,6 +83,8 @@ const LoginScreen = ({ navigation }) => {
     </View>
   );
 };
+
+export default LoginScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -98,5 +127,3 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 });
-
-export default LoginScreen;

@@ -6,22 +6,25 @@
     "orientation": "portrait",
     "icon": "./assets/applogo.png",
     "userInterfaceStyle": "light",
-
     "splash": {
       "image": "./assets/applogo.png",
       "resizeMode": "cover",
       "backgroundColor": "#000000"
     },
-
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/applogo.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.scad.bustracker"
     },
-
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "84394d6b-8cb6-4d63-b936-d3c48d6549a2"
+      }
     }
   }
 }

@@ -3,6 +3,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import Toast from "react-native-toast-message";
 
 import HomeScreen from "./src/screens/HomeScreen";
 import Track from "./src/screens/Track";
@@ -12,12 +13,11 @@ import Profile from "./src/screens/Profile";
 
 import { AuthProvider, AuthContext } from "./src/context/AuthContext";
 
+// Navigators
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-const Home = () => <HomeScreen />;
-const TrackScreen = () => <Track />;
-
+// Bottom Tab Navigator
 function MainTabs() {
   return (
     <Tab.Navigator
@@ -27,6 +27,7 @@ function MainTabs() {
           if (route.name === "Home") iconName = focused ? "home" : "home-outline";
           else if (route.name === "Track") iconName = focused ? "location" : "location-outline";
           else if (route.name === "Profile") iconName = focused ? "person-circle" : "person-circle-outline";
+
           return <Ionicons name={iconName} size={24} color={color} />;
         },
         tabBarActiveTintColor: "#4b0082",
@@ -43,7 +44,7 @@ function MainTabs() {
           shadowOpacity: 0.1,
           shadowRadius: 5,
           elevation: 10,
-          marginBottom: 60,
+          marginBottom: 20,
           marginLeft: 20,
         },
         tabBarLabelStyle: {
@@ -53,25 +54,38 @@ function MainTabs() {
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Home" component={Home} />
-      <Tab.Screen name="Track" component={TrackScreen} />
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Track" component={Track} />
       <Tab.Screen name="Profile" component={Profile} />
     </Tab.Navigator>
   );
 }
 
+// Stack Navigator (Login + Tabs + Bus Details)
 function MainStack() {
-  const { user } = React.useContext(AuthContext);
+  const { userToken } = React.useContext(AuthContext);
 
   return (
     <NavigationContainer>
       <Stack.Navigator>
-        {!user ? (
-          <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+        {userToken === null ? (
+          <Stack.Screen
+            name="Login"
+            component={LoginScreen}
+            options={{ headerShown: false }}
+          />
         ) : (
           <>
-            <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-            <Stack.Screen name="BusDetails" component={BusDetails} options={{ title: "Bus Details" }} />
+            <Stack.Screen
+              name="MainTabs"
+              component={MainTabs}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="BusDetails"
+              component={BusDetails}
+              options={{ title: "Bus Details" }}
+            />
           </>
         )}
       </Stack.Navigator>
@@ -79,10 +93,14 @@ function MainStack() {
   );
 }
 
+// Root App
 export default function App() {
   return (
     <AuthProvider>
-      <MainStack />
+      <>
+        <MainStack />
+        <Toast />
+      </>
     </AuthProvider>
   );
 }

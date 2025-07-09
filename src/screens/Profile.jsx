@@ -1,15 +1,49 @@
-// src/screens/Profile.js
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
+import React, { useContext, useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Alert,
+} from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AuthContext } from '../context/AuthContext';
 
-const Profile = ({ setIsLoggedIn }) => {
-  const user = {
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+1 (555) 123-4567',
-    joinDate: 'Joined January 2023',
-    avatar: 'https://randomuser.me/api/portraits/men/1.jpg',
+const Profile = () => {
+  const { user, logout } = useContext(AuthContext);
+  const [avatarUri, setAvatarUri] = useState(null);
+
+  // ✅ Load avatar URI on mount
+  useEffect(() => {
+    const loadAvatar = async () => {
+      const savedUri = await AsyncStorage.getItem('profilePhoto');
+      setAvatarUri(savedUri || user?.avatar || 'https://randomuser.me/api/portraits/men/1.jpg');
+    };
+    loadAvatar();
+  }, [user]);
+
+  const pickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert('Permission denied', 'We need permission to access your gallery');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      const uri = result.assets[0].uri;
+      setAvatarUri(uri);
+      await AsyncStorage.setItem('profilePhoto', uri); // ✅ Save to storage
+    }
   };
 
   const handleLogout = () => {
@@ -20,7 +54,10 @@ const Profile = ({ setIsLoggedIn }) => {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Logout',
-          onPress: () => setIsLoggedIn(false),
+          onPress: async () => {
+            await AsyncStorage.removeItem('profilePhoto'); // ⬅️ Optional: clear image on logout
+            logout();
+          },
           style: 'destructive',
         },
       ],
@@ -31,20 +68,22 @@ const Profile = ({ setIsLoggedIn }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Image source={{ uri: user.avatar }} style={styles.avatar} />
-        <Text style={styles.name}>{user.name}</Text>
-        <Text style={styles.email}>{user.email}</Text>
+        <TouchableOpacity onPress={pickImage}>
+          <Image source={{ uri: avatarUri }} style={styles.avatar} />
+        </TouchableOpacity>
+        <Text style={styles.name}>{user?.name || 'Unknown User'}</Text>
+        <Text style={styles.email}>{user?.email || 'No email provided'}</Text>
       </View>
 
       <View style={styles.detailsContainer}>
         <View style={styles.detailItem}>
           <Ionicons name="call-outline" size={24} color="#4b0082" />
-          <Text style={styles.detailText}>{user.phone}</Text>
+          <Text style={styles.detailText}>{user?.phone || 'N/A'}</Text>
         </View>
 
         <View style={styles.detailItem}>
           <Ionicons name="calendar-outline" size={24} color="#4b0082" />
-          <Text style={styles.detailText}>{user.joinDate}</Text>
+          <Text style={styles.detailText}>{user?.joinDate || 'Member since 2025'}</Text>
         </View>
       </View>
 
