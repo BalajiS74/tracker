@@ -3,17 +3,25 @@
     "name": "tracker",
     "slug": "tracker",
     "version": "1.0.0",
-    "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true
+    "orientation": "portrait",
+    "icon": "./assets/applogo.png",
+    "userInterfaceStyle": "light",
+
+    "splash": {
+      "image": "./assets/applogo.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#000000"
     },
+
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/applogo.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "74dc2790-d3ef-4f6c-9a20-882c4a95bfcd"
-      }
     }
   }
 }
