@@ -1,17 +1,49 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useState } from "react";
 
 export default function BusCard({ bus = {}, onPress }) {
-  if (!bus || typeof bus !== "object") return null;
-
+  const [isOnline, setIsOnline] = useState(true);
   return (
-    <TouchableOpacity onPress={onPress}>
-      <View style={styles.card}>
-        <View style={styles.row}>
-          <Text style={styles.busNumber}>{bus.busNumber || "Unknown"}</Text>
-          <Text style={styles.route}>{bus.route || "No route"}</Text>
-          <Text style={styles.icon}>🚌</Text>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
+      <LinearGradient
+        colors={["rgba(255,255,255,0.25)", "rgba(255,255,255,0.15)"]}
+        style={styles.card}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        {/* Bus Icon Bubble */}
+        <View style={styles.iconBubble}>
+          <Ionicons name="bus" size={24} color="#fff" />
         </View>
-      </View>
+
+        {/* Bus Info */}
+        <View style={styles.infoContainer}>
+          <Text style={styles.routeText} numberOfLines={1}>
+            {bus.route || "Campus Express Route"}
+          </Text>
+          <Text style={styles.busNumberText}>#{bus.busNumber || "000"}</Text>
+        </View>
+
+        {/* Status Indicator */}
+        <View style={styles.statusPill}>
+          <View
+            style={[
+              styles.statusDot,
+              { backgroundColor: bus.status ? "green" : "red" },
+            ]}
+          />
+          <Text style={styles.statusText}>
+            {bus.status ? "On time" : "Offline"}
+          </Text>
+        </View>
+
+        {/* Arrival Time */}
+        {/* <Text style={styles.timeText}>
+          {bus.time || "5"} min
+        </Text> */}
+      </LinearGradient>
     </TouchableOpacity>
   );
 }
@@ -19,42 +51,67 @@ export default function BusCard({ bus = {}, onPress }) {
 const styles = StyleSheet.create({
   card: {
     width: "100%",
-    marginVertical: 10,
-    padding: 15,
-    borderRadius: 8,
-    backgroundColor: "#fff",
-    alignSelf: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  row: {
+    padding: 20,
+    borderRadius: 24,
+    marginVertical: 8,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+    backgroundColor: "rgba(120, 90, 230, 0.3)", // Purple glass tint
+    backdropFilter: "blur(10px)", // For web - will be ignored on mobile
+    overflow: "hidden",
+    position: "relative",
   },
-  icon: {
-    fontSize: 22,
-    color: "#333",
-    paddingHorizontal: 5,
+  iconBubble: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "rgba(90, 70, 200, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
   },
-  busNumber: {
-    fontSize: 14,
-    fontWeight: "bold",
-    backgroundColor: "#5675F0",
+  infoContainer: {
+    flex: 1,
+  },
+  routeText: {
+    fontSize: 18,
+    fontWeight: "700",
     color: "#fff",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    textAlign: "center",
+    marginBottom: 4,
+    textShadowColor: "rgba(0,0,0,0.2)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  route: {
+  busNumberText: {
     fontSize: 14,
-    color: "#37474f",
-    flexShrink: 1,
-    textAlign: "center",
-    marginHorizontal: 10,
+    color: "rgba(255,255,255,0.8)",
+    fontWeight: "600",
+  },
+  statusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginRight: 15,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  statusText: {
+    fontSize: 12,
+    color: "#fff",
+    fontWeight: "500",
+  },
+  timeText: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#fff",
   },
 });
