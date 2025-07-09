@@ -1,12 +1,14 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 
-export default function BusCards() {
+export default function BusCard({ bus = {}, onPress }) {
+  if (!bus || typeof bus !== "object") return null;
+
   return (
-    <TouchableOpacity>
+    <TouchableOpacity onPress={onPress}>
       <View style={styles.card}>
         <View style={styles.row}>
-          <Text style={styles.busNumber}>TN 76 A 2562</Text>
-          <Text style={styles.route}>SCAD ➝ Alangulam</Text>
+          <Text style={styles.busNumber}>{bus.busNumber || "Unknown"}</Text>
+          <Text style={styles.route}>{bus.route || "No route"}</Text>
           <Text style={styles.icon}>🚌</Text>
         </View>
       </View>
