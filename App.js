@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Toast from "react-native-toast-message";
+import * as SplashScreen from "expo-splash-screen"; // ✅ required
 
 // Screens
 import HomeScreen from "./src/screens/HomeScreen";
@@ -11,7 +12,7 @@ import Track from "./src/screens/Track";
 import BusDetails from "./src/screens/BusDetails";
 import LoginScreen from "./src/screens/LoginScreen";
 import Profile from "./src/screens/Profile";
-import SplashScreen from "./src/screens/SplashScreen";
+import Splash from "./src/screens/SplashScreen"; // ✅ renamed to avoid name clash
 
 // Auth
 import { AuthProvider, AuthContext } from "./src/context/AuthContext";
@@ -96,18 +97,24 @@ function MainStack() {
   );
 }
 
-// Root App with Splash
+// Root App with splash control
+SplashScreen.preventAutoHideAsync(); // ✅ this line is required at top level
+
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 2000); // show for 2s
+    const timer = setTimeout(async () => {
+      setShowSplash(false);
+      await SplashScreen.hideAsync(); // ✅ hide native splash manually
+    }, 3000);
+
     return () => clearTimeout(timer);
   }, []);
 
   return (
     <AuthProvider>
-      {showSplash ? <SplashScreen /> : <MainStack />}
+      {showSplash ? <Splash /> : <MainStack />}
       <Toast />
     </AuthProvider>
   );
