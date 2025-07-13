@@ -103,7 +103,7 @@ export default function HomeScreen({ navigation }) {
         {/* Recent Routes */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Buses</Text>
+            <Text style={styles.sectionTitle}>Recent Search</Text>
           </View>
 
           {busList.map((bus, index) => (
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
-  sectionTitle: { fontSize: 20, fontWeight: "700", color: "#333",backgroundColor:"#1e90ff",width:"100%" },
+  sectionTitle: { fontSize: 20, fontWeight: "700", color: "#333",width:"100%" },
   busCard: {
     flexDirection: "row",
     alignItems: "center",

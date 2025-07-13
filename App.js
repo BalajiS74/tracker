@@ -1,16 +1,19 @@
-import React from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Toast from "react-native-toast-message";
 
+// Screens
 import HomeScreen from "./src/screens/HomeScreen";
 import Track from "./src/screens/Track";
 import BusDetails from "./src/screens/BusDetails";
 import LoginScreen from "./src/screens/LoginScreen";
 import Profile from "./src/screens/Profile";
+import SplashScreen from "./src/screens/SplashScreen";
 
+// Auth
 import { AuthProvider, AuthContext } from "./src/context/AuthContext";
 
 // Navigators
@@ -63,7 +66,7 @@ function MainTabs() {
 
 // Stack Navigator (Login + Tabs + Bus Details)
 function MainStack() {
-  const { userToken } = React.useContext(AuthContext);
+  const { userToken } = useContext(AuthContext);
 
   return (
     <NavigationContainer>
@@ -93,14 +96,19 @@ function MainStack() {
   );
 }
 
-// Root App
+// Root App with Splash
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSplash(false), 2000); // show for 2s
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <AuthProvider>
-      <>
-        <MainStack />
-        <Toast />
-      </>
+      {showSplash ? <SplashScreen /> : <MainStack />}
+      <Toast />
     </AuthProvider>
   );
 }
