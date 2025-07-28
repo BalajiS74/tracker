@@ -44,7 +44,9 @@
       "reactNativeDirectoryCheck": {
         "exclude": [
           "react-native-geolocation-service",
-          "react-native-responsive-screen"
+          "react-native-responsive-screen",
+          "mime",
+          "react-native-vector-icons"
         ]
       }
     }
