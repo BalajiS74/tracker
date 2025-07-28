@@ -1,28 +1,53 @@
-import React, { useState, useEffect, useContext } from "react";
+// App.js
+import React, { useContext, Suspense } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Toast from "react-native-toast-message";
-import * as SplashScreen from "expo-splash-screen"; // ✅ required
+import { ActivityIndicator, View } from "react-native";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from "react-native-responsive-screen";
 
-// Screens
-import HomeScreen from "./src/screens/HomeScreen";
-import Track from "./src/screens/Track";
-import BusDetails from "./src/screens/BusDetails";
-import LoginScreen from "./src/screens/LoginScreen";
-import Profile from "./src/screens/Profile";
-import Splash from "./src/screens/SplashScreen"; // ✅ renamed to avoid name clash
+// Lazy load screens for performance
+const HomeScreen = React.lazy(() => import("./src/screens/HomeScreen"));
+const Track = React.lazy(() => import("./src/screens/Track"));
+const BusDetails = React.lazy(() => import("./src/screens/BusDetails"));
+const LoginScreen = React.lazy(() => import("./src/screens/LoginScreen"));
+const Profile = React.lazy(() => import("./src/screens/Profile"));
 
-// Auth
+// Auth Context
 import { AuthProvider, AuthContext } from "./src/context/AuthContext";
 
-// Navigators
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// Bottom Tab Navigator
+const tabBarStyle = {
+  backgroundColor: "#ffffff",
+  borderTopLeftRadius: wp("5%"),
+  borderTopRightRadius: wp("5%"),
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 5 },
+  shadowOpacity: 0.1,
+  shadowRadius: 5,
+  elevation: 10,
+};
+
+const tabBarLabelStyle = {
+  fontSize: wp("3%"),
+  fontWeight: "600",
+};
+
+const MemoHomeScreen = React.memo(HomeScreen);
+const MemoTrack = React.memo(Track);
+const MemoProfile = React.memo(Profile);
+
 function MainTabs() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -31,91 +56,71 @@ function MainTabs() {
           if (route.name === "Home") iconName = focused ? "home" : "home-outline";
           else if (route.name === "Track") iconName = focused ? "location" : "location-outline";
           else if (route.name === "Profile") iconName = focused ? "person-circle" : "person-circle-outline";
-
           return <Ionicons name={iconName} size={24} color={color} />;
         },
         tabBarActiveTintColor: "#4b0082",
         tabBarInactiveTintColor: "gray",
-        tabBarStyle: {
-          position: "absolute",
-          backgroundColor: "#ffffff",
-          borderRadius: 20,
-          width: 350,
-          height: 70,
-          paddingBottom: 10,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 5 },
-          shadowOpacity: 0.1,
-          shadowRadius: 5,
-          elevation: 10,
-          marginBottom: 20,
-          marginLeft: 20,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "600",
-        },
+        tabBarStyle: { ...tabBarStyle, height: hp("9%") + insets.bottom, paddingBottom: insets.bottom + hp("0.5%"), paddingTop: hp("1%") },
+        tabBarLabelStyle,
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Track" component={Track} />
-      <Tab.Screen name="Profile" component={Profile} />
+      <Tab.Screen name="Home" component={MemoHomeScreen} />
+      <Tab.Screen name="Track" component={MemoTrack} />
+      <Tab.Screen name="Profile" component={MemoProfile} />
     </Tab.Navigator>
   );
 }
 
-// Stack Navigator (Login + Tabs + Bus Details)
 function MainStack() {
-  const { userToken } = useContext(AuthContext);
+  const { userToken, isLoading, isAdmin } = useContext(AuthContext);
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#4b0082" />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
-      <Stack.Navigator>
-        {userToken === null ? (
-          <Stack.Screen
-            name="Login"
-            component={LoginScreen}
-            options={{ headerShown: false }}
-          />
-        ) : (
-          <>
+      <Suspense fallback={<ActivityIndicator size="large" color="#4b0082" style={{ flex: 1 }} />}>
+        <Stack.Navigator>
+          {userToken === null ? (
             <Stack.Screen
-              name="MainTabs"
-              component={MainTabs}
+              name="Login"
+              component={LoginScreen}
               options={{ headerShown: false }}
             />
-            <Stack.Screen
-              name="BusDetails"
-              component={BusDetails}
-              options={{ title: "Bus Details" }}
-            />
-          </>
-        )}
-      </Stack.Navigator>
+          ) : (
+            <>
+              <Stack.Screen
+                name="MainTabs"
+                component={MainTabs}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="BusDetails"
+                // Pass isAdmin prop to BusDetails
+                children={props => <BusDetails {...props} isAdmin={isAdmin} />}
+                options={{ title: "Bus Details" }}
+              />
+            </>
+          )}
+        </Stack.Navigator>
+      </Suspense>
     </NavigationContainer>
   );
 }
 
-// Root App with splash control
-SplashScreen.preventAutoHideAsync(); // ✅ this line is required at top level
-
 export default function App() {
-  const [showSplash, setShowSplash] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      setShowSplash(false);
-      await SplashScreen.hideAsync(); // ✅ hide native splash manually
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
-    <AuthProvider>
-      {showSplash ? <Splash /> : <MainStack />}
-      <Toast />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <MainStack />
+        <Toast />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

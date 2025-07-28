@@ -5,22 +5,26 @@
         {
             "name": "Alangulam New bus stand",
             "lat": 8.8669003,
-            "lng": 77.4949725
+            "lng": 77.4949725,
+            "km": 0
         },
         {
             "name": "Alangulam Old Bus Stand",
             "lat": 8.8649193,
-            "lng": 77.5005147
+            "lng": 77.5005147,
+            "m": 600
         },
         {
             "name": "Nallur Villakku",
             "lat": 8.8596431,
-            "lng": 77.5137975
+            "lng": 77.5137975,
+            "km": 2.3
         },
         {
             "name": "Maranthai",
             "lat": 8.8182097,
-            "lng": 77.5639769
+            "lng": 77.5639769,
+            "km": 4.5
         },
         {
             "name": "nalankurichi bus stop",

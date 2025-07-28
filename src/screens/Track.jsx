@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import { 
   View, 
   Text, 
@@ -8,12 +8,18 @@ import {
   TouchableOpacity,
   RefreshControl,
   SafeAreaView,
-  StatusBar
+  StatusBar,
+  Dimensions,
+  FlatList
 } from "react-native";
 import BusCard from "../components/BusCards";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
+
+const MemoBusCard = memo(({ bus, windowWidth, onPress }) => (
+  <BusCard bus={bus} windowWidth={windowWidth} onPress={onPress} />
+));
 
 const Track = () => {
   const navigation = useNavigation();
@@ -21,13 +27,41 @@ const Track = () => {
   const [search, setSearch] = useState("");
   const [filteredBuses, setFilteredBuses] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [windowDimensions, setWindowDimensions] = useState(Dimensions.get('window'));
+
+  useEffect(() => {
+    const updateDimensions = () => {
+      setWindowDimensions(Dimensions.get('window'));
+    };
+    
+    const subscription = Dimensions.addEventListener('change', updateDimensions);
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
 
   const fetchBusData = async () => {
     try {
       setRefreshing(true);
       const response = await fetch(
-        `https://bus-tracking-school-92dd9-default-rtdb.asia-southeast1.firebasedatabase.app/gps.json`
+        `https://bus-tracking-school-92dd9-default-rtdb.asia-southeast1.firebasedatabase.app/gps.json`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        }
       );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error("Response is not JSON");
+      }
+      
       const data = await response.json();
       const buses = Array.isArray(data) ? data : Object.values(data);
       setBusData(buses);
@@ -54,6 +88,20 @@ const Track = () => {
     }
   }, [search, busData]);
 
+  const handleBusPress = useCallback(
+    (busID) => navigation.navigate("BusDetails", { busID }),
+    [navigation]
+  );
+
+  // Responsive scaling functions
+  const wp = (percentage) => {
+    return windowDimensions.width * (percentage / 100);
+  };
+
+  const hp = (percentage) => {
+    return windowDimensions.height * (percentage / 100);
+  };
+
   return (
     <LinearGradient
       colors={['#f5f7fa', '#e4e8f0']}
@@ -63,32 +111,41 @@ const Track = () => {
         <StatusBar barStyle="dark-content" backgroundColor="#f5f7fa" />
         
         {/* Header Section */}
-        <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>Bus Tracker</Text>
+        <View style={[styles.headerContainer, {
+          paddingHorizontal: wp(6),
+          paddingTop: hp(8),
+          paddingBottom: hp(1)
+        }]}>
+          <Text style={[styles.headerTitle, { fontSize: wp(7) }]}>Bus Tracker</Text>
           <TouchableOpacity 
             onPress={fetchBusData} 
             style={styles.refreshButton}
           >
             <Ionicons 
               name={refreshing ? "refresh" : "refresh-outline"} 
-              size={24} 
+              size={wp(6)} 
               color="#4b0082" 
             />
           </TouchableOpacity>
         </View>
 
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
+        <View style={[styles.searchContainer, {
+          marginHorizontal: wp(6),
+          marginVertical: hp(2),
+          paddingHorizontal: wp(4),
+          paddingVertical: hp(1)
+        }]}>
           <Ionicons 
             name="search" 
-            size={20} 
+            size={wp(5)} 
             color="#7a7a7a" 
             style={styles.searchIcon} 
           />
           <TextInput
             placeholder="Search bus number..."
             placeholderTextColor="#7a7a7a"
-            style={styles.searchInput}
+            style={[styles.searchInput, { fontSize: wp(4) }]}
             value={search}
             onChangeText={setSearch}
           />
@@ -97,15 +154,26 @@ const Track = () => {
               onPress={() => setSearch("")} 
               style={styles.clearButton}
             >
-              <Ionicons name="close-circle" size={20} color="#7a7a7a" />
+              <Ionicons name="close-circle" size={wp(5)} color="#7a7a7a" />
             </TouchableOpacity>
           ) : null}
         </View>
 
         {/* Bus List */}
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+        <FlatList
+          data={filteredBuses}
+          keyExtractor={(bus, idx) => bus.busID ? bus.busID.toString() : idx.toString()}
+          renderItem={({ item }) => (
+            <MemoBusCard
+              bus={item}
+              windowWidth={windowDimensions.width}
+              onPress={() => handleBusPress(item.busID)}
+            />
+          )}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: hp(3), paddingHorizontal: wp(4) }
+          ]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -114,28 +182,15 @@ const Track = () => {
               colors={['#4b0082']}
             />
           }
-        >
-          {filteredBuses.length > 0 ? (
-            filteredBuses.map((bus, idx) => (
-              <BusCard
-                key={bus.busID || idx}
-                bus={bus}
-                onPress={() =>
-                  navigation.navigate("BusDetails", {
-                    busID: bus.busID,
-                  })
-                }
-              />
-            ))
-          ) : (
-            <View style={styles.emptyState}>
+          ListEmptyComponent={
+            <View style={[styles.emptyState, { paddingTop: hp(15) }]}>
               <Ionicons 
                 name="bus-outline" 
-                size={60} 
+                size={wp(15)} 
                 color="#4b0082" 
                 style={styles.emptyIcon}
               />
-              <Text style={styles.emptyText}>No buses found</Text>
+              <Text style={[styles.emptyText, { fontSize: wp(4.5) }]}>No buses found</Text>
               {search ? (
                 <TouchableOpacity 
                   onPress={() => setSearch("")}
@@ -152,8 +207,8 @@ const Track = () => {
                 </TouchableOpacity>
               )}
             </View>
-          )}
-        </ScrollView>
+          }
+        />
       </SafeAreaView>
     </LinearGradient>
   );
@@ -170,13 +225,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 8,
     backgroundColor: 'transparent',
   },
   headerTitle: {
-    fontSize: 28,
     fontWeight: '800',
     color: '#4b0082',
     letterSpacing: 0.5,
@@ -191,10 +242,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#ffffff',
     borderRadius: 12,
-    marginHorizontal: 24,
-    marginVertical: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -207,7 +254,6 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     height: 40,
-    fontSize: 16,
     color: '#333',
     fontWeight: '500',
   },
@@ -219,21 +265,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 24,
-    paddingHorizontal: 16,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 100,
   },
   emptyIcon: {
     opacity: 0.7,
     marginBottom: 16,
   },
   emptyText: {
-    fontSize: 18,
     color: '#555',
     fontWeight: '600',
     marginBottom: 8,
