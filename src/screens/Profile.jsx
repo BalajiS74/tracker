@@ -1,4 +1,10 @@
-import React, { useContext, useState, useEffect, useCallback, memo } from "react";
+import React, {
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  memo,
+} from "react";
 import {
   View,
   Text,
@@ -27,11 +33,17 @@ const Profile = () => {
   const { user, logout } = useContext(AuthContext);
   const [avatarUri, setAvatarUri] = useState(null);
   const [role, setRole] = useState(null);
-  const [windowDimensions, setWindowDimensions] = useState(Dimensions.get("window"));
+  const [windowDimensions, setWindowDimensions] = useState(
+    Dimensions.get("window")
+  );
 
   useEffect(() => {
-    const updateDimensions = () => setWindowDimensions(Dimensions.get("window"));
-    const subscription = Dimensions.addEventListener("change", updateDimensions);
+    const updateDimensions = () =>
+      setWindowDimensions(Dimensions.get("window"));
+    const subscription = Dimensions.addEventListener(
+      "change",
+      updateDimensions
+    );
     return () => subscription?.remove();
   }, []);
 
@@ -57,9 +69,13 @@ const Profile = () => {
   }, [user]);
 
   const pickImage = useCallback(async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert("Permission denied", "We need permission to access your gallery");
+      Alert.alert(
+        "Permission denied",
+        "We need permission to access your gallery"
+      );
       return;
     }
 
@@ -144,7 +160,11 @@ const Profile = () => {
         <View style={[styles.header, { marginBottom: hp(3.5) }]}>
           <TouchableOpacity onPress={pickImage}>
             <Image
-              source={{ uri: avatarUri }}
+              source={
+                typeof avatarUri === "string"
+                  ? { uri: avatarUri }
+                  : require("../images/default-profile-image.png")
+              }
               style={[
                 styles.avatar,
                 {
@@ -206,9 +226,21 @@ const Profile = () => {
             },
           ]}
         >
-          <MenuItem icon="settings-outline" text="Settings" onPress={() => {}} />
-          <MenuItem icon="help-circle-outline" text="Help & Support" onPress={() => {}} />
-          <MenuItem icon="document-text-outline" text="Terms & Privacy" onPress={() => {}} />
+          <MenuItem
+            icon="settings-outline"
+            text="Settings"
+            onPress={() => {}}
+          />
+          <MenuItem
+            icon="help-circle-outline"
+            text="Help & Support"
+            onPress={() => {}}
+          />
+          <MenuItem
+            icon="document-text-outline"
+            text="Terms & Privacy"
+            onPress={() => {}}
+          />
         </View>
 
         <TouchableOpacity

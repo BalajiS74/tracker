@@ -233,7 +233,14 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.header}>
         <Text style={styles.title}>Campus Transit</Text>
         <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
-          <Image source={{ uri: profilePhoto || require("../images/blue-circle-with-white-user.avif") }} style={styles.profileImage} />
+          <Image
+            source={
+              profilePhoto
+                ? { uri: profilePhoto }
+                : require("../images/default-profile-image.png")
+            }
+            style={styles.profileImage}
+          />
         </TouchableOpacity>
       </View>
       {/* Welcome Card */}
@@ -280,6 +287,7 @@ export default function HomeScreen({ navigation }) {
           style={styles.promoImage}
           resizeMode="cover"
         />
+
         <View style={styles.promoOverlay}>
           <Text style={styles.promoTitle}>Never Miss Your Bus!</Text>
           <Text style={styles.promoSubtitle}>
