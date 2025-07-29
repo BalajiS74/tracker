@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
-    marginRight: 15,
+    marginRight: 5,
   },
   statusDot: {
     width: 8,

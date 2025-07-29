@@ -15,11 +15,13 @@ import {
   Dimensions,
   SafeAreaView,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
 import mime from "mime";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthContext } from "../context/AuthContext";
+import DefaultProfileImage from "../images/default-profile-image.png";
 
 const MenuItem = memo(({ icon, text, onPress }) => (
   <TouchableOpacity style={styles.menuItem} onPress={onPress}>
@@ -36,7 +38,7 @@ const Profile = () => {
   const [windowDimensions, setWindowDimensions] = useState(
     Dimensions.get("window")
   );
-
+  const navigation = useNavigation();
   useEffect(() => {
     const updateDimensions = () =>
       setWindowDimensions(Dimensions.get("window"));
@@ -160,11 +162,7 @@ const Profile = () => {
         <View style={[styles.header, { marginBottom: hp(3.5) }]}>
           <TouchableOpacity onPress={pickImage}>
             <Image
-              source={
-                typeof avatarUri === "string"
-                  ? { uri: avatarUri }
-                  : require("../images/default-profile-image.png")
-              }
+              source={avatarUri ? { uri: avatarUri } : DefaultProfileImage}
               style={[
                 styles.avatar,
                 {
@@ -234,12 +232,12 @@ const Profile = () => {
           <MenuItem
             icon="help-circle-outline"
             text="Help & Support"
-            onPress={() => {}}
+            onPress={() => navigation.navigate("HelpSupport")}
           />
           <MenuItem
             icon="document-text-outline"
             text="Terms & Privacy"
-            onPress={() => {}}
+            onPress={() => navigation.navigate("TermsPrivacy")}
           />
         </View>
 

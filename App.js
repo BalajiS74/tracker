@@ -1,4 +1,3 @@
-// App.js
 import React, { useContext, Suspense } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -18,6 +17,8 @@ const Track = React.lazy(() => import("./src/screens/Track"));
 const BusDetails = React.lazy(() => import("./src/screens/BusDetails"));
 const LoginScreen = React.lazy(() => import("./src/screens/LoginScreen"));
 const Profile = React.lazy(() => import("./src/screens/Profile"));
+const HelpSupportScreen = React.lazy(() => import("./src/screens/HelpSupportScreen"));
+const TermsPrivacyScreen = React.lazy(() => import("./src/screens/TermsPrivacyScreen"));
 
 // Auth Context
 import { AuthProvider, AuthContext } from "./src/context/AuthContext";
@@ -44,6 +45,8 @@ const tabBarLabelStyle = {
 const MemoHomeScreen = React.memo(HomeScreen);
 const MemoTrack = React.memo(Track);
 const MemoProfile = React.memo(Profile);
+const MemoHelpSupport = React.memo(HelpSupportScreen);
+const MemoTermsPrivacy = React.memo(TermsPrivacyScreen);
 
 function MainTabs() {
   const insets = useSafeAreaInsets();
@@ -102,9 +105,18 @@ function MainStack() {
               />
               <Stack.Screen
                 name="BusDetails"
-                // Pass isAdmin prop to BusDetails
                 children={props => <BusDetails {...props} isAdmin={isAdmin} />}
                 options={{ title: "Bus Details" }}
+              />
+              <Stack.Screen
+                name="HelpSupport"
+                component={MemoHelpSupport}
+                options={{ title: "Help & Support" }}
+              />
+              <Stack.Screen
+                name="TermsPrivacy"
+                component={MemoTermsPrivacy}
+                options={{ title: "Terms & Privacy" }}
               />
             </>
           )}

@@ -12,10 +12,12 @@ import {
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { AuthContext } from "../context/AuthContext";
+import Ionicons from "@expo/vector-icons/Ionicons"; // ✅ Ionicons imported
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useContext(AuthContext);
 
@@ -83,28 +85,45 @@ const LoginScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.formContainer}>
+          {/* Email Input with Icon */}
           <Text style={styles.inputLabel}>Email Address</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your email"
-            placeholderTextColor="#999"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+          <View style={styles.inputWithIcon}>
+            <Ionicons name="mail-outline" size={22} color="#666" style={styles.inputIcon} />
+            <TextInput
+              style={styles.textInput}
+              placeholder="Enter your email"
+              placeholderTextColor="#999"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
 
+          {/* Password Input with Icon + Eye Toggle */}
           <Text style={styles.inputLabel}>Password</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your password"
-            placeholderTextColor="#999"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+          <View style={styles.inputWithIcon}>
+            <Ionicons name="lock-closed-outline" size={22} color="#666" style={styles.inputIcon} />
+            <TextInput
+              style={[styles.textInput, { flex: 1 }]}
+              placeholder="Enter your password"
+              placeholderTextColor="#999"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <Ionicons
+                name={showPassword ? "eye-off" : "eye"}
+                size={22}
+                color="#666"
+                style={{ marginLeft: 8 }}
+              />
+            </TouchableOpacity>
+          </View>
 
+          {/* Login Button */}
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleLogin}
@@ -117,6 +136,7 @@ const LoginScreen = ({ navigation }) => {
             )}
           </TouchableOpacity>
 
+          {/* Forgot Password */}
           <TouchableOpacity
             style={styles.forgotPasswordButton}
             onPress={() => navigation.navigate("ForgotPassword")}
@@ -164,14 +184,22 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontWeight: "600",
   },
-  input: {
-    height: 56,
+  inputWithIcon: {
+    flexDirection: "row",
+    alignItems: "center",
     borderColor: "#e0e0e0",
     borderWidth: 1,
     borderRadius: 12,
-    paddingHorizontal: 16,
-    marginBottom: 20,
     backgroundColor: "#f9f9f9",
+    paddingHorizontal: 12,
+    marginBottom: 20,
+    height: 56,
+  },
+  inputIcon: {
+    marginRight: 8,
+  },
+  textInput: {
+    flex: 1,
     fontSize: 16,
     color: "#333",
   },

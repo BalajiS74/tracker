@@ -33,7 +33,7 @@ import {
 } from "react-native-responsive-screen";
 import * as Location from "expo-location";
 import * as SMS from "expo-sms";
-
+import DefaultProfileImage from "../images/default-profile-image.png";
 const BusCard = memo(({ route, nextStop, time, onPress }) => (
   <TouchableOpacity style={styles.busCard} onPress={onPress}>
     <View style={styles.busCardIconContainer}>
@@ -234,11 +234,7 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.title}>Campus Transit</Text>
         <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
           <Image
-            source={
-              profilePhoto
-                ? { uri: profilePhoto }
-                : require("../images/default-profile-image.png")
-            }
+            source={profilePhoto ? { uri: profilePhoto } : DefaultProfileImage}
             style={styles.profileImage}
           />
         </TouchableOpacity>
