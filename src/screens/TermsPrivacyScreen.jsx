@@ -7,7 +7,7 @@ import {
   Text,  // Added missing Text import
   Dimensions  // Added for responsive design
 } from 'react-native';
-import Markdown from 'react-native-markdown-renderer';
+import Markdown from "react-native-markdown-display";
 import { Card, Divider } from 'react-native-paper';
 
 const TermsPrivacyScreen = () => {
