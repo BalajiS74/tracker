@@ -58,13 +58,9 @@ const Profile = () => {
         const savedUri = await AsyncStorage.getItem("profilePhoto");
         const storedRole = await AsyncStorage.getItem("role");
         setRole(storedRole);
-        setAvatarUri(
-          savedUri ||
-            user?.avatar ||
-            "https://randomuser.me/api/portraits/men/1.jpg"
-        );
+        setAvatarUri(savedUri || user?.avatar || DefaultProfileImage);
       } catch (e) {
-        setAvatarUri("https://randomuser.me/api/portraits/men/1.jpg");
+        setAvatarUri(DefaultProfileImage);
       }
     };
     loadProfileInfo();
@@ -244,11 +240,11 @@ const Profile = () => {
         <TouchableOpacity
           style={[
             styles.logoutButton,
-            { borderRadius: wp(2.5), padding: wp(4), borderWidth: wp(0.3) },
+            { borderRadius: wp(2.5), padding: wp(2), borderWidth: wp(0.3) },
           ]}
           onPress={handleLogout}
         >
-          <Text style={[styles.logoutButtonText, { fontSize: wp(4) }]}>
+          <Text style={[styles.logoutButtonText, { fontSize: wp(4), lineHeight: wp(5) }]}>
             Logout
           </Text>
         </TouchableOpacity>
@@ -273,7 +269,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   detailItem: { flexDirection: "row", alignItems: "center" },
-  detailText: { color: "#333" },
+  detailText: { color: "#333", fontWeight: "500", flex: 1, textAlign: "left", marginLeft: 10 ,lineHeight: 20},
   menuContainer: {
     backgroundColor: "#fff",
     shadowColor: "#000",
@@ -289,10 +285,12 @@ const styles = StyleSheet.create({
     borderBottomColor: "#eee",
     paddingVertical: 16,
   },
-  menuText: { flex: 1, color: "#333" },
+  menuText: { flex: 1, color: "#333", fontWeight: "500",  lineHeight: 15, padding: 10 },
   logoutButton: {
     backgroundColor: "#fff",
     borderColor: "#ff4444",
+    alignItems: "center", // ✅ horizontally center
+    justifyContent: "center", // ✅ vertically center
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -303,6 +301,8 @@ const styles = StyleSheet.create({
     color: "#ff4444",
     fontWeight: "bold",
     textAlign: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
 });
 

@@ -369,14 +369,13 @@ const BusDetails = ({ route }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Bus {busID}</Text>
+        <Text style={styles.headerTitle}>{busID}</Text>
         <View style={styles.statusBadge}>
           <Text style={styles.statusText}>{status}</Text>
         </View>
       </View>
-
       <View style={styles.tabContainer}>
         <TouchableOpacity
           onPress={handleTabRoute}
@@ -514,7 +513,7 @@ const BusDetails = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#e4e7ebff",
     paddingHorizontal: normalize(2),
   },
   loadingContainer: {
@@ -653,6 +652,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#334155",
     marginBottom: normalize(4),
+    padding: normalize(4),
+    lineHeight: normalize(13),
   },
   activeStopName: {
     color: "#4f46e5",
