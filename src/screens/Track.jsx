@@ -12,7 +12,7 @@ import {
   Dimensions,
   FlatList
 } from "react-native";
-import BusCard from "../components/BusCards";
+import BusCard from "../components/BusCards"; 
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
