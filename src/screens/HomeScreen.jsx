@@ -159,7 +159,7 @@ export default function HomeScreen({ navigation }) {
 
       // Step 2: Get parent number
       const parentNumber = await AsyncStorage.getItem("parentPhone");
-      const staffNumber = ["9342721886", "9597483659"];
+      const staffNumber = ["9342721886", "9597483659","9442077569","9342496269"];
       if (!parentNumber && !staffNumber) {
         Alert.alert(
           "Missing Number",
