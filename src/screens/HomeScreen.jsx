@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: hp("1.5%"),
-    paddingHorizontal: wp("4%"),
+    paddingHorizontal: wp("5%"),
     borderRadius: wp("10%"),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -582,12 +582,17 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
     zIndex: 10,
+    textAlign:"center"
   },
   emergencyButtonText: {
     color: "#fff",
     fontSize: wp("4%"),
     fontWeight: "600",
     marginLeft: wp("2%"),
+    display:"flex",
+    alignItems:"center",
+    justifyContent:"center",
+    padding:5,
   },
   noBusText: {
     color: "#888",
@@ -603,4 +608,3 @@ const styles = StyleSheet.create({
     paddingVertical: hp("2%"),
   },
 });
- 

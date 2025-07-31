@@ -10,6 +10,8 @@ import {
   Easing,
   Dimensions,
   Alert,
+  StatusBar,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Speech from "expo-speech";
@@ -21,6 +23,7 @@ const getRouteData = (busID) => {
       BUS123: require("../routedata/BUS123.json"),
       BUS456: require("../routedata/BUS456.json"),
       BUS789: require("../routedata/BUS789.json"),
+      BUS1011: require("../routedata/BUS1011.json"),
     };
     return files[busID];
   } catch (e) {
@@ -514,7 +517,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#e4e7ebff",
-    paddingHorizontal: normalize(2),
   },
   loadingContainer: {
     flex: 1,
@@ -534,6 +536,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
     padding: normalize(16),
     backgroundColor: "#ffffff",
     borderBottomWidth: 1,
@@ -659,11 +662,6 @@ const styles = StyleSheet.create({
     color: "#4f46e5",
     fontWeight: "700",
   },
-  coordinates: {
-    fontSize: normalize(13),
-    color: "#64748b",
-    fontFamily: "monospace",
-  },
   currentStopBadge: {
     backgroundColor: "#4f46e5",
     borderRadius: normalize(12),
@@ -677,7 +675,7 @@ const styles = StyleSheet.create({
   },
   detailsContainer: {
     flex: 1,
-  },
+    },
   detailCard: {
     backgroundColor: "#ffffff",
     borderRadius: normalize(16),
@@ -698,7 +696,7 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: normalize(12),
+    paddingVertical: normalize(5),
     borderBottomWidth: 1,
     borderBottomColor: "#f1f5f9",
   },
@@ -711,22 +709,32 @@ const styles = StyleSheet.create({
     color: "#1e293b",
     fontWeight: "500",
     fontSize: normalize(15),
+    paddingVertical: "10",
+    paddingHorizontal: "10",
   },
   movingStatus: {
     color: "#10b981",
     fontWeight: "600",
+    paddingVertical: "5",
+    paddingHorizontal: "10",
   },
   stoppedStatus: {
     color: "#f59e0b",
     fontWeight: "600",
+    paddingVertical: "5",
+    paddingHorizontal: "10",
   },
   parkedStatus: {
     color: "#64748b",
     fontWeight: "600",
+    paddingVertical: "5",
+    paddingHorizontal: "10",
   },
   nextStop: {
     color: "#4f46e5",
     fontWeight: "600",
+    paddingVertical: "5",
+    paddingHorizontal: "10",
   },
 });
 

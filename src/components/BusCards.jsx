@@ -1,10 +1,45 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function BusCard({ bus = {}, onPress }) {
   const [isOnline, setIsOnline] = useState(true);
+
+  const checkStatus = async () => {
+    if (!bus.busID) return;
+
+    try {
+      const res = await fetch(
+        `https://bus-tracking-school-92dd9-default-rtdb.asia-southeast1.firebasedatabase.app/gps/${bus.busID}.json`
+      );
+      const data = await res.json();
+      const now = Date.now(); // current time in ms
+
+      if (data && data.lastSeen) {
+        const lastSeen = data.lastSeen * 1000; // convert to ms
+        const isRecent = now - lastSeen <= 30000; // 30 seconds threshold
+
+        setIsOnline(data.status === true && isRecent);
+      } else {
+        setIsOnline(false);
+      }
+    } catch (err) {
+      console.error("❌ Error fetching bus status:", err);
+      setIsOnline(false);
+    }
+  };
+
+  useEffect(() => {
+    checkStatus(); // initial load
+
+    const interval = setInterval(() => {
+      checkStatus(); // update every 10s
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [bus.busID]);
+
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
       <LinearGradient
@@ -31,18 +66,13 @@ export default function BusCard({ bus = {}, onPress }) {
           <View
             style={[
               styles.statusDot,
-              { backgroundColor: bus.status ? "green" : "red" },
+              { backgroundColor: isOnline ? "green" : "red" },
             ]}
           />
           <Text style={styles.statusText}>
-            {bus.status ? "On time" : "Offline"}
+            {isOnline ? "Online" : "Offline"}
           </Text>
         </View>
-
-        {/* Arrival Time */}
-        {/* <Text style={styles.timeText}>
-          {bus.time || "5"} min
-        </Text> */}
       </LinearGradient>
     </TouchableOpacity>
   );
@@ -58,8 +88,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.3)",
-    backgroundColor: "rgba(120, 90, 230, 0.3)", // Purple glass tint
-    backdropFilter: "blur(10px)", // For web - will be ignored on mobile
+    backgroundColor: "rgba(120, 90, 230, 0.3)",
     overflow: "hidden",
     position: "relative",
   },
@@ -108,10 +137,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#fff",
     fontWeight: "500",
-  },
-  timeText: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#fff",
   },
 });

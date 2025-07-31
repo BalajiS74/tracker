@@ -4,80 +4,58 @@
     "stops": [
         {
             "name": "SCAD Polytechnic College",
-            "coordinates": {
-                "lat": 8.6627757,
-                "lon": 77.5692855
-            }
+            "lat": 8.6627757,
+            "lng": 77.5692855
         },
         {
             "name": "Thambithoppu",
-            "coordinates": {
-                "lat": 8.5223176,
-                "lon": 77.5585604
-            }
+            "lat": 8.5223176,
+            "lng": 77.5585604
         },
         {
             "name": "Hindustan Petroleum Corporation Limited",
-            "coordinates": {
-                "lat": 8.6250181,
-                "lon": 77.572986
-            }
+            "lat": 8.6250181,
+            "lng": 77.572986
         },
         {
             "name": "Anna Salai",
-            "coordinates": {
-                "lat": 8.5132989,
-                "lon": 77.5578674
-            }
+            "lat": 8.5132989,
+            "lng": 77.5578674
         },
         {
             "name": "BSNL Street",
-            "coordinates": {
-                "lat": 8.5119502,
-                "lon": 77.5587576
-            }
+            "lat": 8.5119502,
+            "lng": 77.5587576
         },
         {
             "name": "Nanguneri",
-            "coordinates": {
-                "lat": 8.4961056,
-                "lon": 77.6464534
-            }
+            "lat": 8.4961056,
+            "lng": 77.6464534
         },
         {
             "name": "Valliyur",
-            "coordinates": {
-                "lat": 8.401361,
-                "lon": 77.6174483
-            }
+            "lat": 8.401361,
+            "lng": 77.6174483
         },
         {
             "name": "Pambankulam",
-            "coordinates": {
-                "lat": 8.3385034,
-                "lon": 77.5920295
-            }
+            "lat": 8.3385034,
+            "lng": 77.5920295
         },
         {
             "name": "Panakudi",
-            "coordinates": {
-                "lat": 8.3198722,
-                "lon": 77.5766633
-            }
+            "lat": 8.3198722,
+            "lng": 77.5766633
         },
         {
             "name": "kaavalkinaru",
-            "coordinates": {
-                "lat": 8.2800883,
-                "lon": 77.5677645
-            }
+            "lat": 8.2800883,
+            "lng": 77.5677645
         },
         {
             "name": "Nagarkovil",
-            "coordinates": {
-                "lat": 8.1833,
-                "lon": 77.4119
-            }
+            "lat": 8.1833,
+            "lng": 77.4119
         }
     ]
 }
