@@ -1,106 +1,76 @@
 {
-    "busID": "BUS123",
-    "routeName": "SCAD to Karuthapillaiyur",
+    "busID": "BUS456",
+    "routeName": "SCAD to Saradha College",
     "stops": [
         {
-            "name": "scad polytechnic college",
-            "lat": 8.6635221,
-            "lng": 77.5673071
+            "name": "SCAD Polytechnic College",
+            "lat": 8.6635526,
+            "lng": 77.5681187
         },
         {
-            "name": "Scad Engineering college",
-            "lat": 8.6677244,
-            "lng": 77.5727186
+            "name": "SCAD Engineering College ",
+            "lat": 8.6677165,
+            "lng": 77.5727654
         },
         {
-            "name": "Scad school",
-            "lat": 8.6696543,
-            "lng": 77.5750706
+            "name": "SCAD International School",
+            "lat": 8.6696472,
+            "lng": 77.5750445
         },
         {
-            "name": "RC Middle School",
-            "lat": 8.6775767,
-            "lng": 77.5581804
+            "name": "Pattamadai",
+            "lat": 8.6672293,
+            "lng": 77.5845415
         },
         {
-            "name": "Uppathu Colony",
-            "lat": 8.6831092,
-            "lng": 77.5290491
+            "name": "Melaseval",
+            "lat": 8.6605974,
+            "lng": 77.6163341
         },
         {
-            "name": "Veeravanallur Sourashtra Meeting Hall ",
-            "lat": 8.6905883,
-            "lng": 77.5216505
+            "name": "Tharuvai",
+            "lat": 8.6708323,
+            "lng": 77.6797828
         },
         {
-            "name": "Veeravanallur Bus Stand",
-            "lat": 8.6929271,
-            "lng": 77.5201874
+            "name": "Araikulam",
+            "lat": 8.6791095,
+            "lng": 77.6950812
         },
         {
-            "name": "மாேர் மடம் பேருந்து நிறுத்தம்",
-            "lat": 8.6952264,
-            "lng": 77.5172035
+            "name": "Melapalayam",
+            "lat": 8.6983862,
+            "lng": 77.7144346
         },
         {
-            "name": "karambai bus stop",
-            "lat": 8.6783329,
-            "lng": 77.4823367
+            "name": "Karungulam",
+            "lat": 8.7016333,
+            "lng": 77.7188911
         },
         {
-            "name": "New Bus Station",
-            "lat": 8.680522,
-            "lng": 77.4702594
+            "name": "Tirunelveli New Bus Stand",
+            "lat": 8.7021043,
+            "lng": 77.7288644
         },
         {
-            "name": "Kallidaikurichi RS Bus Stop",
-            "lat": 8.6815521,
-            "lng": 77.4652608
+            "name": "Thiyagaraja Nagar",
+            "lat": 8.6963074,
+            "lng": 77.7548695
         },
         {
-            "name": "kallidai panchayathu bus stop",
-            "lat": 8.6879945,
-            "lng": 77.461668
+            "name": "Srinivasagam Nagar",
+            "lat": 8.7107259,
+            "lng": 77.7652956
         },
         {
-            "name": "Ambasamudram Arch",
-            "lat": 8.703461,
-            "lng": 77.4588345
+            "name": "KTC Nagar",
+            "lat": 8.7206939,
+            "lng": 77.7734659
         },
         {
-            "name": "ambai poo kadai bus stop",
-            "lat": 8.7035851,
-            "lng": 77.4565963
-        },
-        {
-            "name": "Agasthiyar kovil bus stop, ambasamudram",
-            "lat": 8.7038189,
-            "lng": 77.4509767
-        },
-        {
-            "name": "Vandimarithamman Kovil",
-            "lat": 8.7034931,
-            "lng": 77.4485708
-        },
-        {
-            "name": "kalyani theatre",
-            "lat": 8.7038339,
-            "lng": 77.4466484
-        },
-        {
-            "name": "Rani school Bus stop",
-            "lat": 8.7054389,
-            "lng": 77.4416731
-        },
-        {
-            "name": "Poovan kurichi",
-            "lat": 8.7598823,
-            "lng": 77.3823258
-        },
-        {
-            "name": "Karuthapillaiyur",
-            "lat": 8.7696708,
-            "lng": 77.3625903
+            "name": "Saradha College",
+            "lat": 8.7157675,
+            "lng": 77.792717
         }
     ]
 }

@@ -1,0 +1,106 @@
+{
+    "busID": "BUS123",
+    "routeName": "SCAD to Karuthapillaiyur",
+    "stops": [
+        {
+            "name": "scad polytechnic college",
+            "lat": 8.6635221,
+            "lng": 77.5673071
+        },
+        {
+            "name": "Scad Engineering college",
+            "lat": 8.6677244,
+            "lng": 77.5727186
+        },
+        {
+            "name": "Scad school",
+            "lat": 8.6696543,
+            "lng": 77.5750706
+        },
+        {
+            "name": "RC Middle School",
+            "lat": 8.6775767,
+            "lng": 77.5581804
+        },
+        {
+            "name": "Uppathu Colony",
+            "lat": 8.6831092,
+            "lng": 77.5290491
+        },
+        {
+            "name": "Veeravanallur Sourashtra Meeting Hall ",
+            "lat": 8.6905883,
+            "lng": 77.5216505
+        },
+        {
+            "name": "Veeravanallur Bus Stand",
+            "lat": 8.6929271,
+            "lng": 77.5201874
+        },
+        {
+            "name": "மாேர் மடம் பேருந்து நிறுத்தம்",
+            "lat": 8.6952264,
+            "lng": 77.5172035
+        },
+        {
+            "name": "karambai bus stop",
+            "lat": 8.6783329,
+            "lng": 77.4823367
+        },
+        {
+            "name": "New Bus Station",
+            "lat": 8.680522,
+            "lng": 77.4702594
+        },
+        {
+            "name": "Kallidaikurichi RS Bus Stop",
+            "lat": 8.6815521,
+            "lng": 77.4652608
+        },
+        {
+            "name": "kallidai panchayathu bus stop",
+            "lat": 8.6879945,
+            "lng": 77.461668
+        },
+        {
+            "name": "Ambasamudram Arch",
+            "lat": 8.703461,
+            "lng": 77.4588345
+        },
+        {
+            "name": "ambai poo kadai bus stop",
+            "lat": 8.7035851,
+            "lng": 77.4565963
+        },
+        {
+            "name": "Agasthiyar kovil bus stop, ambasamudram",
+            "lat": 8.7038189,
+            "lng": 77.4509767
+        },
+        {
+            "name": "Vandimarithamman Kovil",
+            "lat": 8.7034931,
+            "lng": 77.4485708
+        },
+        {
+            "name": "kalyani theatre",
+            "lat": 8.7038339,
+            "lng": 77.4466484
+        },
+        {
+            "name": "Rani school Bus stop",
+            "lat": 8.7054389,
+            "lng": 77.4416731
+        },
+        {
+            "name": "Poovan kurichi",
+            "lat": 8.7598823,
+            "lng": 77.3823258
+        },
+        {
+            "name": "Karuthapillaiyur",
+            "lat": 8.7696708,
+            "lng": 77.3625903
+        }
+    ]
+}

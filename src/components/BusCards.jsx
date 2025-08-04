@@ -1,10 +1,34 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useState } from "react";
-
+import { useState, useEffect } from "react";
+import { checkStatus } from "../services/checkBusStatus"; // Import the checkStatus function
 export default function BusCard({ bus = {}, onPress }) {
   const [isOnline, setIsOnline] = useState(true);
+  const checkBusStatus = async () => {
+    const busID = bus.busID || bus.id; // Ensure busID is defined
+    if (!busID) return;
+
+    try {
+      const status = await checkStatus(busID); // assumes checkStatus() returns true/false
+      setIsOnline(status);
+      console.log(status);
+      
+    } catch (error) {
+      console.error("Error checking bus status:", error);
+    }
+  };
+  // 🔁 Run every 10s
+  useEffect(() => {
+     checkBusStatus();
+
+    const interval = setInterval(() => {
+      checkBusStatus();
+    }, 10000);
+
+    return () => clearInterval(interval); // cleanup
+  }, [bus.busID]);
+
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
       <LinearGradient
@@ -31,18 +55,13 @@ export default function BusCard({ bus = {}, onPress }) {
           <View
             style={[
               styles.statusDot,
-              { backgroundColor: bus.status ? "green" : "red" },
+              { backgroundColor: isOnline ? "green" : "red" },
             ]}
           />
           <Text style={styles.statusText}>
-            {bus.status ? "On time" : "Offline"}
+            {isOnline ? "Online" : "Offline"}
           </Text>
         </View>
-
-        {/* Arrival Time */}
-        {/* <Text style={styles.timeText}>
-          {bus.time || "5"} min
-        </Text> */}
       </LinearGradient>
     </TouchableOpacity>
   );
@@ -58,8 +77,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.3)",
-    backgroundColor: "rgba(120, 90, 230, 0.3)", // Purple glass tint
-    backdropFilter: "blur(10px)", // For web - will be ignored on mobile
+    backgroundColor: "rgba(120, 90, 230, 0.3)",
     overflow: "hidden",
     position: "relative",
   },
@@ -108,10 +126,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#fff",
     fontWeight: "500",
-  },
-  timeText: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#fff",
   },
 });

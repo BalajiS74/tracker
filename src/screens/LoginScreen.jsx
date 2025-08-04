@@ -1,4 +1,4 @@
-import React, { useState, useContext, useCallback } from "react";
+import React, { useState, useContext, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -12,15 +12,21 @@ import {
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { AuthContext } from "../context/AuthContext";
-import Ionicons from "@expo/vector-icons/Ionicons"; // ✅ Ionicons imported
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showReset, setShowReset] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login } = useContext(AuthContext);
+  const [resetLoading, setResetLoading] = useState(false);
 
+  const { login } = useContext(AuthContext);
+  const passwordInputRef = useRef(null);
+
+  // === LOGIN ===
   const handleLogin = useCallback(async () => {
     if (!email || !password) {
       Toast.show({
@@ -31,11 +37,21 @@ const LoginScreen = ({ navigation }) => {
       return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Toast.show({
+        type: "error",
+        text1: "Invalid Email",
+        text2: "Please enter a valid email address",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
       const response = await fetch(
-        "https://trakerbackend.onrender.com/api/login",
+        "https://trakerbackend.onrender.com/api/auth/login",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -43,14 +59,27 @@ const LoginScreen = ({ navigation }) => {
         }
       );
 
-      const data = await response.json();
+      // 🛡️ Safely read raw text first
+      const text = await response.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (jsonErr) {
+        console.error("Invalid JSON response:", jsonErr);
+        Toast.show({
+          type: "error",
+          text1: "Server Error",
+          text2: "Invalid JSON returned by server",
+        });
+        return;
+      }
 
       if (response.ok) {
-        login(data.user, data.userToken, data.role, data.relatedTo);
+        login(data.user, data.token, data.role, data.relatedTo); // ✅ fixed `token` reference
         Toast.show({
           type: "success",
           text1: "Login Successful",
-          text2: `Welcome back, ${data.user.name}`,
+          text2: `Welcome back, ${data.user?.name || "User"}`,
         });
       } else {
         Toast.show({
@@ -60,15 +89,66 @@ const LoginScreen = ({ navigation }) => {
         });
       }
     } catch (error) {
+      console.error("Login error:", error);
       Toast.show({
         type: "error",
-        text1: "Login Error",
-        text2: error.message,
+        text1: "Network Error",
+        text2: "Check your internet or try again",
       });
     } finally {
       setLoading(false);
     }
   }, [email, password, login]);
+
+  // === RESET PASSWORD ===
+  const handleResetPassword = async () => {
+    if (!email || !newPassword) {
+      Toast.show({
+        type: "error",
+        text1: "Missing Fields",
+        text2: "Please enter email and new password",
+      });
+      return;
+    }
+
+    setResetLoading(true);
+
+    try {
+      const response = await fetch(
+        "https://trakerbackend.onrender.com/api/auth/forgot-password",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, newPassword }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        Toast.show({
+          type: "success",
+          text1: "Password Updated",
+        });
+        setShowReset(false);
+        setNewPassword("");
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Reset Failed",
+          text2: data.message,
+        });
+      }
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: error.message,
+      });
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -85,10 +165,15 @@ const LoginScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.formContainer}>
-          {/* Email Input with Icon */}
+          {/* Email Input */}
           <Text style={styles.inputLabel}>Email Address</Text>
           <View style={styles.inputWithIcon}>
-            <Ionicons name="mail-outline" size={22} color="#666" style={styles.inputIcon} />
+            <Ionicons
+              name="mail-outline"
+              size={22}
+              color="#666"
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.textInput}
               placeholder="Enter your email"
@@ -98,51 +183,104 @@ const LoginScreen = ({ navigation }) => {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              returnKeyType="next"
+              onSubmitEditing={() => passwordInputRef.current?.focus()}
             />
           </View>
 
-          {/* Password Input with Icon + Eye Toggle */}
-          <Text style={styles.inputLabel}>Password</Text>
-          <View style={styles.inputWithIcon}>
-            <Ionicons name="lock-closed-outline" size={22} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={[styles.textInput, { flex: 1 }]}
-              placeholder="Enter your password"
-              placeholderTextColor="#999"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons
-                name={showPassword ? "eye-off" : "eye"}
-                size={22}
-                color="#666"
-                style={{ marginLeft: 8 }}
-              />
-            </TouchableOpacity>
-          </View>
+          {/* Password Input */}
+          {!showReset && (
+            <>
+              <Text style={styles.inputLabel}>Password</Text>
+              <View style={styles.inputWithIcon}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={22}
+                  color="#666"
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  ref={passwordInputRef}
+                  style={[styles.textInput, { flex: 1 }]}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#999"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={22}
+                    color="#666"
+                    style={{ marginLeft: 8 }}
+                  />
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
 
           {/* Login Button */}
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Login</Text>
-            )}
-          </TouchableOpacity>
+          {!showReset && (
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Login</Text>
+              )}
+            </TouchableOpacity>
+          )}
 
-          {/* Forgot Password */}
+          {/* Forgot Password Button */}
           <TouchableOpacity
             style={styles.forgotPasswordButton}
-            onPress={() => navigation.navigate("ForgotPassword")}
+            onPress={() => setShowReset(!showReset)}
           >
-            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+            <Text style={styles.forgotPasswordText}>
+              {showReset ? "Cancel Reset" : "Forgot Password?"}
+            </Text>
           </TouchableOpacity>
+
+          {/* Password Reset Form */}
+          {showReset && (
+            <>
+              <Text style={styles.inputLabel}>New Password</Text>
+              <View style={styles.inputWithIcon}>
+                <Ionicons
+                  name="key-outline"
+                  size={22}
+                  color="#666"
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Enter new password"
+                  placeholderTextColor="#999"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry
+                />
+              </View>
+              <TouchableOpacity
+                style={[styles.button, resetLoading && styles.buttonDisabled]}
+                onPress={handleResetPassword}
+                disabled={resetLoading}
+              >
+                {resetLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Reset Password</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -174,6 +312,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: "#666",
+    padding: 5,
   },
   formContainer: {
     paddingHorizontal: 30,
@@ -205,11 +344,11 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "#4b0082",
-    padding: 16,
     borderRadius: 12,
-    alignItems: "center",
     justifyContent: "center",
-    height: 56,
+    alignItems: "center",
+    paddingVertical: 14, // Ensure enough vertical space
+    paddingHorizontal: 20,
     marginTop: 10,
     shadowColor: "#4b0082",
     shadowOffset: { width: 0, height: 4 },
@@ -221,17 +360,21 @@ const styles = StyleSheet.create({
     backgroundColor: "#a78bc7",
   },
   buttonText: {
-    color: "#fff",
+    color: "#fff", // white looks better over indigo
     fontSize: 16,
     fontWeight: "600",
+    textAlign: "center",
+    padding: 5,
   },
+
   forgotPasswordButton: {
     alignSelf: "center",
-    marginTop: 20,
+    marginTop: 15,
   },
   forgotPasswordText: {
     color: "#4b0082",
     fontSize: 14,
     fontWeight: "600",
+    padding: 5,
   },
 });
