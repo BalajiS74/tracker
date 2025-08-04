@@ -2,42 +2,29 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState, useEffect } from "react";
-
+import { checkStatus } from "../services/checkBusStatus"; // Import the checkStatus function
 export default function BusCard({ bus = {}, onPress }) {
   const [isOnline, setIsOnline] = useState(true);
-
-  const checkStatus = async () => {
-    if (!bus.busID) return;
+  const checkBusStatus = async () => {
+    const busID = bus.busID || bus.id; // Ensure busID is defined
+    if (!busID) return;
 
     try {
-      const res = await fetch(
-        `https://bus-tracking-school-92dd9-default-rtdb.asia-southeast1.firebasedatabase.app/gps/${bus.busID}.json`
-      );
-      const data = await res.json();
-      const now = Date.now(); // current time in ms
-
-      if (data && data.lastSeen) {
-        const lastSeen = data.lastSeen * 1000; // convert to ms
-        const isRecent = now - lastSeen <= 30000; // 30 seconds threshold
-
-        setIsOnline(data.status === true && isRecent);
-      } else {
-        setIsOnline(false);
-      }
-    } catch (err) {
-      console.error("❌ Error fetching bus status:", err);
-      setIsOnline(false);
+      const status = await checkStatus(busID); // assumes checkStatus() returns true/false
+      setIsOnline(status);
+    } catch (error) {
+      console.error("Error checking bus status:", error);
     }
   };
-
+  // 🔁 Run every 10s
   useEffect(() => {
-    checkStatus(); // initial load
+     checkBusStatus();
 
     const interval = setInterval(() => {
-      checkStatus(); // update every 10s
+      checkBusStatus();
     }, 10000);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(interval); // cleanup
   }, [bus.busID]);
 
   return (

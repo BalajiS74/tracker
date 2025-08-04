@@ -17,11 +17,12 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import * as ImagePicker from "expo-image-picker";
-import mime from "mime";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthContext } from "../context/AuthContext";
+import * as ImagePicker from "expo-image-picker";
 import DefaultProfileImage from "../images/default-profile-image.png";
+
+const API_BASE_URL = "https://trakerbackend.onrender.com";
 
 const MenuItem = memo(({ icon, text, onPress }) => (
   <TouchableOpacity style={styles.menuItem} onPress={onPress}>
@@ -33,118 +34,115 @@ const MenuItem = memo(({ icon, text, onPress }) => (
 
 const Profile = () => {
   const { user, logout } = useContext(AuthContext);
+  const navigation = useNavigation();
   const [avatarUri, setAvatarUri] = useState(null);
-  const [role, setRole] = useState(null);
   const [windowDimensions, setWindowDimensions] = useState(
     Dimensions.get("window")
   );
-  const navigation = useNavigation();
-  useEffect(() => {
-    const updateDimensions = () =>
-      setWindowDimensions(Dimensions.get("window"));
-    const subscription = Dimensions.addEventListener(
-      "change",
-      updateDimensions
-    );
-    return () => subscription?.remove();
-  }, []);
 
-  const wp = (percentage) => windowDimensions.width * (percentage / 100);
-  const hp = (percentage) => windowDimensions.height * (percentage / 100);
+  const wp = (p) => windowDimensions.width * (p / 100);
+  const hp = (p) => windowDimensions.height * (p / 100);
 
   useEffect(() => {
-    const loadProfileInfo = async () => {
-      try {
-        const savedUri = await AsyncStorage.getItem("profilePhoto");
-        const storedRole = await AsyncStorage.getItem("role");
-        setRole(storedRole);
-        setAvatarUri(savedUri || user?.avatar || DefaultProfileImage);
-      } catch (e) {
-        setAvatarUri(DefaultProfileImage);
+    const loadAvatar = async () => {
+      const saved = await AsyncStorage.getItem("profilePhoto");
+      if (saved) {
+        setAvatarUri(saved);
+      } else if (user?.avatar) {
+        const fullUrl = `${API_BASE_URL}${user.avatar}`;
+        setAvatarUri(fullUrl);
+        await AsyncStorage.setItem("profilePhoto", fullUrl);
       }
     };
-    loadProfileInfo();
+    loadAvatar();
   }, [user]);
 
-  const pickImage = useCallback(async () => {
-    const permissionResult =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert(
-        "Permission denied",
-        "We need permission to access your gallery"
-      );
-      return;
+  useEffect(() => {
+    const sub = Dimensions.addEventListener("change", () =>
+      setWindowDimensions(Dimensions.get("window"))
+    );
+    return () => sub?.remove();
+  }, []);
+
+  const pickImage = async () => {
+    try {
+      const { granted } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!granted) {
+        Alert.alert("Permission Denied", "You need to allow media access.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets?.length > 0) {
+        const pickedUri = result.assets[0].uri;
+        await uploadAvatar(pickedUri);
+      } else {
+        console.log("User cancelled image picker.");
+      }
+    } catch (err) {
+      console.error("Image Picker Error:", err);
+      Alert.alert("Error", "Image picker failed.");
     }
+  };
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-
-    if (!result.canceled) {
-      const uri = result.assets[0].uri;
-      const mimeType = mime.getType(uri);
+  const uploadAvatar = async (uri) => {
+    try {
+      const fileName = uri.split("/").pop();
+      const ext = fileName.split(".").pop();
+      const mimeType = `image/${ext}`;
 
       const formData = new FormData();
       formData.append("avatar", {
         uri,
+        name: fileName,
         type: mimeType,
-        name: uri.split("/").pop(),
       });
 
-      const userId = user?.id;
-      const userEmail = user?.email;
-      const currentRole = role;
+      const res = await fetch(`${API_BASE_URL}/api/auth/upload-avatar`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+          "Content-Type": "multipart/form-data",
+        },
+        body: formData,
+      });
 
-      if (!userId || !userEmail || !currentRole) {
-        Alert.alert("Error", "Missing user info (ID, email, or role).");
-        return;
-      }
+      const data = await res.json();
 
-      try {
-        const response = await fetch(
-          `https://trakerbackend.onrender.com/api/upload-avatar/${userId}?role=${currentRole}&email=${userEmail}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "multipart/form-data" },
-            body: formData,
-          }
-        );
-        const data = await response.json();
-        if (response.ok) {
-          setAvatarUri(data.avatar);
-          await AsyncStorage.setItem("profilePhoto", data.avatar);
-          Alert.alert("Success", "Profile photo updated!");
-        } else {
-          Alert.alert("Upload Error", data.message || "Failed to upload.");
-        }
-      } catch (err) {
-        Alert.alert("Upload Failed", "Something went wrong.");
+      if (res.ok) {
+        const fullUrl = `${API_BASE_URL}${data.avatarUrl}`;
+        setAvatarUri(fullUrl);
+        await AsyncStorage.setItem("profilePhoto", fullUrl);
+        Alert.alert("Success", "Profile photo updated!");
+      } else {
+        Alert.alert("Error", data.message || "Upload failed");
       }
+    } catch (err) {
+      console.error("Upload error:", err);
+      Alert.alert("Upload error", "Something went wrong.");
     }
-  }, [user, role]);
+  };
 
   const handleLogout = useCallback(() => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Logout",
-          onPress: async () => {
-            await AsyncStorage.removeItem("profilePhoto");
-            await AsyncStorage.removeItem("role");
-            logout();
-          },
-          style: "destructive",
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        onPress: async () => {
+          await AsyncStorage.clear();
+          logout();
         },
-      ],
-      { cancelable: false }
-    );
+        style: "destructive",
+      },
+    ]);
   }, [logout]);
 
   return (
@@ -152,7 +150,7 @@ const Profile = () => {
       <View
         style={[
           styles.container,
-          { paddingHorizontal: wp(6), paddingTop: hp(8), paddingBottom: hp(1) },
+          { paddingHorizontal: wp(6), paddingTop: hp(8) },
         ]}
       >
         <View style={[styles.header, { marginBottom: hp(3.5) }]}>
@@ -172,40 +170,29 @@ const Profile = () => {
             />
           </TouchableOpacity>
           <Text style={[styles.name, { fontSize: wp(6) }]}>
-            {user?.name || "Unknown User"}
+            {user?.name || "Unknown"}
           </Text>
           <Text style={[styles.email, { fontSize: wp(4) }]}>
-            {user?.email || "No email provided"}
+            {user?.email || "No email"}
           </Text>
         </View>
 
         <View
           style={[
             styles.detailsContainer,
-            { borderRadius: wp(4), padding: wp(5), marginBottom: hp(2.5) },
+            { padding: wp(5), borderRadius: wp(4), marginBottom: hp(2.5) },
           ]}
         >
           <View style={[styles.detailItem, { marginBottom: hp(2) }]}>
             <Ionicons name="call-outline" size={wp(6)} color="#4b0082" />
-            <Text
-              style={[
-                styles.detailText,
-                { marginLeft: wp(4), fontSize: wp(4) },
-              ]}
-            >
+            <Text style={[styles.detailText, { fontSize: wp(4) }]}>
               {user?.phone || "N/A"}
             </Text>
           </View>
-
           <View style={styles.detailItem}>
             <Ionicons name="calendar-outline" size={wp(6)} color="#4b0082" />
-            <Text
-              style={[
-                styles.detailText,
-                { marginLeft: wp(4), fontSize: wp(4) },
-              ]}
-            >
-              {user?.joinDate || "Member since 2025"}
+            <Text style={[styles.detailText, { fontSize: wp(4) }]}>
+              {user?.joinDate || "2025"}
             </Text>
           </View>
         </View>
@@ -213,18 +200,10 @@ const Profile = () => {
         <View
           style={[
             styles.menuContainer,
-            {
-              borderRadius: wp(4),
-              paddingHorizontal: wp(5),
-              marginBottom: hp(2.5),
-            },
+            { borderRadius: wp(4), paddingHorizontal: wp(5) },
           ]}
         >
-          <MenuItem
-            icon="settings-outline"
-            text="Settings"
-            onPress={() => {}}
-          />
+          <MenuItem icon="settings-outline" text="Settings" onPress={() => {}} />
           <MenuItem
             icon="help-circle-outline"
             text="Help & Support"
@@ -244,7 +223,12 @@ const Profile = () => {
           ]}
           onPress={handleLogout}
         >
-          <Text style={[styles.logoutButtonText, { fontSize: wp(4), lineHeight: wp(5) }]}>
+          <Text
+            style={[
+              styles.logoutButtonText,
+              { fontSize: wp(4), lineHeight: wp(5) },
+            ]}
+          >
             Logout
           </Text>
         </TouchableOpacity>
@@ -269,7 +253,14 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   detailItem: { flexDirection: "row", alignItems: "center" },
-  detailText: { color: "#333", fontWeight: "500", flex: 1, textAlign: "left", marginLeft: 10 ,lineHeight: 20},
+  detailText: {
+    color: "#333",
+    fontWeight: "500",
+    marginLeft: 10,
+    flex: 1,
+    textAlign: "left",
+    lineHeight: 20,
+  },
   menuContainer: {
     backgroundColor: "#fff",
     shadowColor: "#000",
@@ -277,6 +268,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,
+    marginBottom: 20,
   },
   menuItem: {
     flexDirection: "row",
@@ -285,12 +277,18 @@ const styles = StyleSheet.create({
     borderBottomColor: "#eee",
     paddingVertical: 16,
   },
-  menuText: { flex: 1, color: "#333", fontWeight: "500",  lineHeight: 15, padding: 10 },
+  menuText: {
+    flex: 1,
+    color: "#333",
+    fontWeight: "500",
+    lineHeight: 15,
+    padding: 10,
+  },
   logoutButton: {
     backgroundColor: "#fff",
     borderColor: "#ff4444",
-    alignItems: "center", // ✅ horizontally center
-    justifyContent: "center", // ✅ vertically center
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

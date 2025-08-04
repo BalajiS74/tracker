@@ -6,17 +6,20 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userToken, setUserToken] = useState(null);
-  const [role, setRole] = useState(null); // ✅ add role state
-  const [relatedTo, setRelatedTo] = useState(null); // ✅ for parent/mentor link to student
+  const [role, setRole] = useState(null);
+  const [relatedTo, setRelatedTo] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadStoredAuth = async () => {
       try {
-        const storedToken = await AsyncStorage.getItem("userToken");
-        const storedUser = await AsyncStorage.getItem("user");
-        const storedRole = await AsyncStorage.getItem("role");
-        const storedRelatedTo = await AsyncStorage.getItem("relatedTo");
+        const [storedToken, storedUser, storedRole, storedRelatedTo] =
+          await Promise.all([
+            AsyncStorage.getItem("userToken"),
+            AsyncStorage.getItem("user"),
+            AsyncStorage.getItem("role"),
+            AsyncStorage.getItem("relatedTo"),
+          ]);
 
         if (storedToken && storedUser) {
           setUserToken(storedToken);
@@ -27,7 +30,7 @@ export const AuthProvider = ({ children }) => {
           }
         }
       } catch (error) {
-        console.error("Error loading auth from storage:", error);
+        console.error("Auth load error:", error);
       } finally {
         setIsLoading(false);
       }
@@ -36,26 +39,54 @@ export const AuthProvider = ({ children }) => {
     loadStoredAuth();
   }, []);
 
-  // ✅ login with role & relatedTo
   const login = async (userData, token, userRole, relatedStudent = null) => {
     try {
-      await AsyncStorage.setItem("userToken", token);
-      await AsyncStorage.setItem("user", JSON.stringify(userData));
-      await AsyncStorage.setItem("role", userRole);
+      const tasks = [
+        AsyncStorage.setItem("userToken", token),
+        AsyncStorage.setItem("user", JSON.stringify(userData)),
+        AsyncStorage.setItem("role", userRole),
+      ];
+
       if (relatedStudent) {
-        await AsyncStorage.setItem("relatedTo", JSON.stringify(relatedStudent));
+        tasks.push(
+          AsyncStorage.setItem("relatedTo", JSON.stringify(relatedStudent))
+        );
       }
 
-      if (userData?.parentdata?.phone) {
-        await AsyncStorage.setItem("parentPhone", userData.parentdata.phone);
+      // Save emergency phone for student or staff
+      if (userData?.role === "student" && userData.parents?.length > 0) {
+        tasks.push(
+          AsyncStorage.setItem("parentPhone", userData.parents[0].phone)
+        );
       }
+
+      if (
+        userData?.role === "staff" &&
+        userData.emergencyContact?.phone
+      ) {
+        tasks.push(
+          AsyncStorage.setItem(
+            "emergencyPhone",
+            userData.emergencyContact.phone
+          )
+        );
+      }
+
+      // Save avatar URL from user
+      if (userData?.avatar) {
+        tasks.push(
+          AsyncStorage.setItem("profilePhoto", userData.avatar)
+        );
+      }
+
+      await Promise.all(tasks);
 
       setUser(userData);
       setUserToken(token);
       setRole(userRole);
       if (relatedStudent) setRelatedTo(relatedStudent);
     } catch (error) {
-      console.error("Login storage error:", error);
+      console.error("Login error:", error);
     }
   };
 
@@ -66,6 +97,9 @@ export const AuthProvider = ({ children }) => {
         "user",
         "role",
         "relatedTo",
+        "parentPhone",
+        "emergencyPhone",
+        "profilePhoto",
       ]);
       setUser(null);
       setUserToken(null);
@@ -76,6 +110,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshUser = async (newUserData) => {
+    try {
+      await AsyncStorage.setItem("user", JSON.stringify(newUserData));
+      if (newUserData.avatar) {
+        await AsyncStorage.setItem("profilePhoto", newUserData.avatar);
+      }
+      setUser(newUserData);
+    } catch (error) {
+      console.error("User refresh error:", error);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -83,9 +129,10 @@ export const AuthProvider = ({ children }) => {
         userToken,
         role,
         relatedTo,
+        isLoading,
         login,
         logout,
-        isLoading,
+        refreshUser,
       }}
     >
       {children}

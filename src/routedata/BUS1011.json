@@ -1,61 +1,168 @@
 {
     "busID": "BUS1011",
-    "routeName": "SCAD to Nagarkovil",
+    "routeName": "SCAD to Nagarkovil & Saradha College",
     "stops": [
         {
             "name": "SCAD Polytechnic College",
             "lat": 8.6627757,
-            "lng": 77.5692855
+            "lng": 77.5692855,
+            "nextStop": "Thambithoppu"
         },
         {
             "name": "Thambithoppu",
             "lat": 8.5223176,
-            "lng": 77.5585604
+            "lng": 77.5585604,
+            "nextStop": "Kalakadu petrol bunk"
         },
         {
-            "name": "Hindustan Petroleum Corporation Limited",
+            "name": "Kalakadu petrol bunk",
             "lat": 8.6250181,
-            "lng": 77.572986
+            "lng": 77.572986,
+            "nextStop": "kalakadu Anna Salai"
         },
         {
-            "name": "Anna Salai",
+            "name": "kalakadu Anna Salai",
             "lat": 8.5132989,
-            "lng": 77.5578674
+            "lng": 77.5578674,
+            "nextStop": "kalakadu BSNL Street"
         },
         {
-            "name": "BSNL Street",
+            "name": "kalakadu BSNL Street",
             "lat": 8.5119502,
-            "lng": 77.5587576
+            "lng": 77.5587576,
+            "nextStop": "Nanguneri"
         },
         {
             "name": "Nanguneri",
             "lat": 8.4961056,
-            "lng": 77.6464534
+            "lng": 77.6464534,
+            "nextStop": "Valliyur"
         },
         {
             "name": "Valliyur",
             "lat": 8.401361,
-            "lng": 77.6174483
+            "lng": 77.6174483,
+            "nextStop": "Pambankulam"
         },
         {
             "name": "Pambankulam",
             "lat": 8.3385034,
-            "lng": 77.5920295
+            "lng": 77.5920295,
+            "nextStop": "Panakudi"
         },
         {
             "name": "Panakudi",
             "lat": 8.3198722,
-            "lng": 77.5766633
+            "lng": 77.5766633,
+            "nextStop": "kaavalkinaru"
         },
         {
             "name": "kaavalkinaru",
             "lat": 8.2800883,
-            "lng": 77.5677645
+            "lng": 77.5677645,
+            "nextStop": "Nagarkovil"
         },
         {
             "name": "Nagarkovil",
             "lat": 8.1833,
-            "lng": 77.4119
+            "lng": 77.4119,
+            "nextStop": "padmaneri bridge"
+        },
+
+        {
+            "name": "padmaneri bridge",
+            "lat": 8.5416772,
+            "lng": 77.5647181,
+            "nextStop": "St.John's School"
+        },
+        {
+            "name": "St.John's School",
+            "lat": 8.5094052,
+            "lng": 77.5738467,
+            "nextStop": "IndianOil"
+        },
+        {
+            "name": "IndianOil",
+            "lat": 8.5165521,
+            "lng": 77.558806,
+            "nextStop": "Anna Salai"
+        },
+        {
+            "name": "Anna Salai",
+            "lat": 8.5129567,
+            "lng": 77.558428,
+            "nextStop": "BSNL Office"
+        },
+        {
+            "name": "BSNL Office",
+            "lat": 8.5116566,
+            "lng": 77.5587207,
+            "nextStop": "pudhur"
+        },
+        {
+            "name": "pudhur",
+            "lat": 8.5108632,
+            "lng": 77.5794653,
+            "nextStop": "Nanguneri POINT"
+        },
+        {
+            "name": "Nanguneri POINT",
+            "lat": 8.4962542,
+            "lng": 77.647242,
+            "nextStop": "Perumpathu"
+        },
+        {
+            "name": "Perumpathu",
+            "lat": 8.4880131,
+            "lng": 77.6463796,
+            "nextStop": "Nanguneri Bus Stop"
+        },
+        {
+            "name": "Nanguneri Bus Stop",
+            "lat": 8.4896859,
+            "lng": 77.6616855,
+            "nextStop": "Nanguneri turning"
+        },
+        {
+            "name": "Nanguneri turning",
+            "lat": 8.4813289,
+            "lng": 77.6622999,
+            "nextStop": "Church of god"
+        },
+        {
+            "name": "Church of god",
+            "lat": 8.3858083,
+            "lng": 77.6095763,
+            "nextStop": "Pambankulam POINT"
+        },
+        {
+            "name": "Pambankulam POINT",
+            "lat": 8.3401004,
+            "lng": 77.5879529,
+            "nextStop": "STAND"
+        },
+        {
+            "name": "STAND",
+            "lat": 8.3249433,
+            "lng": 77.5790642,
+            "nextStop": "St. Joseph's Church"
+        },
+        {
+            "name": "St. Joseph's Church",
+            "lat": 8.3176024,
+            "lng": 77.5768919,
+            "nextStop": "Jaison Bakery"
+        },
+        {
+            "name": "Jaison Bakery",
+            "lat": 8.27773,
+            "lng": 77.5671819,
+            "nextStop": "Kavalkinaru"
+        },
+        {
+            "name": "Kavalkinaru",
+            "lat": 8.2776589,
+            "lng": 77.5680587
         }
     ]
 }

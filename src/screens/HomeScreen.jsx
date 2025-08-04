@@ -5,20 +5,18 @@ import React, {
   useState,
   useCallback,
   memo,
+  useRef,
 } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Image,
-  ScrollView,
   StatusBar,
   TouchableOpacity,
-  Alert,
-  Linking,
-  Platform,
   RefreshControl,
   FlatList,
+  AppState,
 } from "react-native";
 import {
   SafeAreaView,
@@ -26,14 +24,15 @@ import {
 } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { AuthContext } from "../context/AuthContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
-import * as Location from "expo-location";
-import * as SMS from "expo-sms";
 import DefaultProfileImage from "../images/default-profile-image.png";
+import {
+  handleShareLiveLocation,
+  handleEmergency,
+} from "../services/userLocation.js";
 const BusCard = memo(({ route, nextStop, time, onPress }) => (
   <TouchableOpacity style={styles.busCard} onPress={onPress}>
     <View style={styles.busCardIconContainer}>
@@ -63,7 +62,9 @@ export default function HomeScreen({ navigation }) {
   const [emergencyMode, setEmergencyMode] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(null);
-
+  const appState = useRef(AppState.currentState);
+  // console.log(user);
+  
   const fetchBusData = useCallback(async () => {
     try {
       const response = await fetch(
@@ -76,7 +77,6 @@ export default function HomeScreen({ navigation }) {
           route: busData.route || `Bus ${busID}`,
           nextStop: busData.nextStop || "Unknown Stop",
           time: busData.updatedTime || "N/A",
-          isWomenOnly: busData.isWomenOnly || false,
         }));
         setBusList(list.slice(0, 3));
       } else {
@@ -87,144 +87,28 @@ export default function HomeScreen({ navigation }) {
     }
   }, []);
 
+  // 
   useEffect(() => {
-    const loadAvatar = async () => {
-      const stored = await AsyncStorage.getItem("profilePhoto");
-      if (stored) {
-        setProfilePhoto(stored);
-      } else if (user?.avatar) {
-        setProfilePhoto(user.avatar);
-      } else {
-        setProfilePhoto("https://randomuser.me/api/portraits/men/1.jpg");
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        setEmergencyMode(false); // reset emergency mode when app comes back
       }
-    };
+      appState.current = nextAppState;
+    });
 
-    loadAvatar();
-  }, [user]); // rerun when user updates
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     fetchBusData();
     const interval = setInterval(fetchBusData, 30000);
     return () => clearInterval(interval);
   }, [fetchBusData]);
-
-  const handleEmergency = () => {
-    setEmergencyMode(true);
-    Alert.alert(
-      "Emergency Alert",
-      "Help is on the way! Your location is being shared with campus security and trusted contacts.",
-      [
-        { text: "Call Security", onPress: () => Linking.openURL(`tel:${112}`) },
-        {
-          text: "Cancel Alert",
-          onPress: () => setEmergencyMode(false),
-          style: "cancel",
-        },
-      ],
-      { cancelable: false }
-    );
-  };
-
-  const handleShareLiveLocation = async () => {
-    try {
-      // Step 1: Check existing permission
-      let { status } = await Location.getForegroundPermissionsAsync();
-
-      if (status !== "granted") {
-        // Request again
-        const { status: newStatus } =
-          await Location.requestForegroundPermissionsAsync();
-
-        if (newStatus !== "granted") {
-          Alert.alert(
-            "Location Permission Required",
-            "Please enable location access in app settings to use this feature.",
-            [
-              { text: "Cancel", style: "cancel" },
-              {
-                text: "Open Settings",
-                onPress: () => {
-                  if (Platform.OS === "ios") {
-                    Linking.openURL("app-settings:");
-                  } else {
-                    Linking.openSettings();
-                  }
-                },
-              },
-            ]
-          );
-          return;
-        }
-      }
-
-      // Step 2: Get parent number
-      const parentNumber = await AsyncStorage.getItem("parentPhone");
-      const staffNumber = [
-        "9342721886",
-        "9597483659",
-        "9442077569",
-        "9342496269",
-      ];
-      if (!parentNumber && !staffNumber) {
-        Alert.alert(
-          "Missing Number",
-          "No parent number found. Please complete profile setup."
-        );
-        return;
-      }
-
-      // Step 3: Confirm user wants to share
-      Alert.alert(
-        "Share Live Location",
-        "Your live location will be shared with your emergency contact.",
-        [
-          {
-            text: "Share Now",
-            onPress: async () => {
-              try {
-                const location = await Location.getCurrentPositionAsync({
-                  accuracy: Location.Accuracy.High,
-                });
-                const { latitude, longitude } = location.coords;
-                const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
-                const message = `🚨 Emergency! My current location is: ${mapsLink}`;
-
-                const isAvailable = await SMS.isAvailableAsync();
-                if (!isAvailable) {
-                  Alert.alert("Error", "SMS is not available on this device");
-                  return;
-                }
-
-                const { result } = await SMS.sendSMSAsync(
-                  [parentNumber || staffNumber],
-                  message
-                );
-
-                if (result === "sent") {
-                  Alert.alert("Success", "Location shared successfully!");
-                } else {
-                  Alert.alert("Notice", "SMS was not sent");
-                }
-              } catch (error) {
-                console.error("Error sending SMS:", error);
-                Alert.alert(
-                  "Error",
-                  "Could not share location. Please try again."
-                );
-              }
-            },
-          },
-          { text: "Cancel", style: "cancel" },
-        ]
-      );
-    } catch (err) {
-      console.error("Permission error:", err);
-      Alert.alert(
-        "Error",
-        "An unexpected error occurred while requesting permissions."
-      );
-    }
-  };
 
   const handleBusPress = useCallback(
     (busID) => navigation.navigate("BusDetails", { busID }),
@@ -237,12 +121,6 @@ export default function HomeScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Campus Transit</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
-          <Image
-            source={profilePhoto ? { uri: profilePhoto } : DefaultProfileImage}
-            style={styles.profileImage}
-          />
-        </TouchableOpacity>
       </View>
       {/* Welcome Card */}
       <View style={styles.welcomeCard}>
@@ -260,7 +138,7 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.safetyButtons}>
           <TouchableOpacity
             style={styles.safetyButton}
-            onPress={handleEmergency}
+            onPress={() => handleEmergency(setEmergencyMode)}
           >
             <Ionicons name="alert-circle" size={wp("6%")} color="#ff4444" />
             <Text style={styles.safetyButtonText}>Emergency</Text>
@@ -345,9 +223,9 @@ export default function HomeScreen({ navigation }) {
             ]}
           >
             <Text style={styles.alertText}>
-              ⚠️ <Text style={{ fontWeight: "bold" }}>Alert:</Text> Tapping the{" "}
-              <Text style={{ fontWeight: "bold" }}>Emergency</Text> button will
-              instantly notify your{" "}
+              ⚠️ <Text style={{ fontWeight: "bold" }}>Warning:</Text> Tapping
+              the <Text style={{ fontWeight: "bold" }}>Share Location</Text>{" "}
+              button will instantly notify your{" "}
               <Text style={{ fontWeight: "bold" }}>parents</Text>,{" "}
               <Text style={{ fontWeight: "bold" }}>AO</Text>, and{" "}
               <Text style={{ fontWeight: "bold" }}>staffs</Text> with your live
@@ -364,7 +242,9 @@ export default function HomeScreen({ navigation }) {
         }
       />
 
-      {!emergencyMode && <EmergencyButton onPress={handleEmergency} />}
+      {!emergencyMode && (
+        <EmergencyButton onPress={() => handleEmergency(setEmergencyMode)} />
+      )}
     </SafeAreaView>
   );
 }
@@ -395,6 +275,7 @@ const styles = StyleSheet.create({
     borderRadius: wp("10%"),
     borderWidth: 2,
     borderColor: "#4b0082",
+    marginRight: wp("2%"),
   },
   welcomeCard: {
     flexDirection: "row",
@@ -441,7 +322,7 @@ const styles = StyleSheet.create({
   safetyButton: {
     backgroundColor: "#fff",
     borderRadius: wp("3%"),
-    padding: wp("3%"),
+    padding: wp("2%"),
     alignItems: "center",
     width: wp("28%"),
     shadowColor: "#000",
@@ -455,6 +336,8 @@ const styles = StyleSheet.create({
     color: "#333",
     marginTop: hp("0.5%"),
     fontWeight: "500",
+    // backgroundColor: "rgba(0, 104, 130, 0.8)",
+    padding: 5,
   },
   promoBanner: {
     height: hp("25%"),
@@ -473,7 +356,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: wp("5%"),
-    backgroundColor: "rgba(75, 0, 130, 0.8)",
+    backgroundColor: "rgba(0, 130, 104, 0.8)",
   },
   promoTitle: {
     fontSize: wp("5%"),
@@ -520,7 +403,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
     borderRadius: wp("3%"),
-    padding: wp("4%"),
+    padding: wp("2%"),
     marginBottom: hp("1.5%"),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -545,16 +428,22 @@ const styles = StyleSheet.create({
   },
   busCardDetails: {
     flex: 1,
+    alignItems: "flex-start",
+    justifyContent: "center",
   },
   busCardRoute: {
     fontSize: wp("4.2%"),
     fontWeight: "600",
     color: "#333",
-    marginBottom: hp("0.3%"),
+    paddingTop: 2,
+    paddingBottom: 2,
+    paddingLeft: 5,
+    paddingRight: 5,
   },
   busCardStop: {
     fontSize: wp("3.5%"),
     color: "#666",
+    padding: 5,
   },
   busCardTimeContainer: {
     flexDirection: "row",
@@ -568,9 +457,9 @@ const styles = StyleSheet.create({
   },
   emergencyButton: {
     position: "absolute",
-    bottom: hp("2%"),
-    right: wp("6%"),
-    backgroundColor: "#ff4444",
+    bottom: hp("3%"),
+    right: wp("5%"),
+    backgroundColor: "#ff3b30", 
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: hp("1.5%"),
@@ -579,21 +468,19 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowRadius: 6,
     elevation: 6,
     zIndex: 10,
-    textAlign:"center"
   },
   emergencyButtonText: {
     color: "#fff",
-    fontSize: wp("4%"),
+    fontSize: wp("4.2%"),
     fontWeight: "600",
     marginLeft: wp("2%"),
-    display:"flex",
-    alignItems:"center",
-    justifyContent:"center",
-    padding:5,
+    marginBottom: 3,
+    padding: 5,
   },
+
   noBusText: {
     color: "#888",
     fontStyle: "italic",

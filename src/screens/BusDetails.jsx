@@ -13,10 +13,16 @@ import {
   StatusBar,
   Platform,
 } from "react-native";
+import {
+  useBusTracker,
+  useETA,
+  useArrivalNotification,
+} from "../hooks/useBusTracker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Speech from "expo-speech";
 import * as Location from "expo-location";
-
+import { checkStatus } from "../services/checkBusStatus"; // Import the checkStatus function
+import { calculateDistance } from "../services/Calculations"; // Import the distance calculation function
 const getRouteData = (busID) => {
   try {
     const files = {
@@ -38,6 +44,8 @@ function normalize(size) {
   return Math.round(scale * size);
 }
 
+// Memoized Stop Item Component
+// This component will only re-render if its props change
 const MemoStopItem = memo(
   ({ item, index, currentStopIdx, routeData, blinkAnim, pulseAnim }) => {
     const isCurrent = index === currentStopIdx;
@@ -96,11 +104,8 @@ const BusDetails = ({ route }) => {
   const [busInfo, setBusInfo] = useState(null);
   const [activeTab, setActiveTab] = useState("route");
   const [userLocation, setUserLocation] = useState(null);
+  const [isOnline, setIsOnline] = useState(true);
 
-  // Estimated Arrival Time (to next stop)
-  const [etaToNextStop, setEtaToNextStop] = useState("--");
-  // Stop ETA Countdown
-  const [countdown, setCountdown] = useState("--");
   // User's Nearest Stop
   const [nearestUserStop, setNearestUserStop] = useState(null);
   // Notifications
@@ -158,54 +163,17 @@ const BusDetails = ({ route }) => {
     setRouteData(data);
   }, [busID]);
 
-  useEffect(() => {
-    if (!routeData) return;
-    const firebaseURL = `https://bus-tracking-school-92dd9-default-rtdb.asia-southeast1.firebasedatabase.app/gps/${busID}.json`;
+  const { fetchCurrentLocation } = useBusTracker({
+    busID,
+    routeData,
+    lastConfirmedStopIdx,
+    setBusInfo,
+    setCurrentStopIdx,
+    setLastConfirmedStopIdx,
+    setLoading,
+  });
 
-    const fetchCurrentLocation = async () => {
-      try {
-        const res = await fetch(firebaseURL);
-        const data = await res.json();
-        setBusInfo(data);
-
-        if (!data?.latitude || !data?.longitude) {
-          setCurrentStopIdx(-1);
-          setLoading(false);
-          return;
-        }
-
-        let minDist = Infinity;
-        let nearestIdx = -1;
-        routeData.stops.forEach((stop, idx) => {
-          const d = calculateDistance(
-            data.latitude,
-            data.longitude,
-            stop.lat,
-            stop.lng
-          );
-          if (d < minDist) {
-            minDist = d;
-            nearestIdx = idx;
-          }
-        });
-
-        if (minDist < 300 && nearestIdx > lastConfirmedStopIdx) {
-          setLastConfirmedStopIdx(nearestIdx);
-        }
-
-        setCurrentStopIdx(lastConfirmedStopIdx);
-        setLoading(false);
-      } catch (e) {
-        setCurrentStopIdx(-1);
-        setLoading(false);
-      }
-    };
-
-    fetchCurrentLocation();
-    const interval = setInterval(fetchCurrentLocation, 5000);
-    return () => clearInterval(interval);
-  }, [routeData, busID, lastConfirmedStopIdx]);
-
+  // get the user location
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -218,18 +186,7 @@ const BusDetails = ({ route }) => {
     })();
   }, []);
 
-  function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371e3;
-    const φ1 = (lat1 * Math.PI) / 180;
-    const φ2 = (lat2 * Math.PI) / 180;
-    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(Δφ / 2) ** 2 +
-      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
-
+  // Announce next stop
   useEffect(() => {
     if (!routeData || lastConfirmedStopIdx < 0) return;
 
@@ -245,36 +202,13 @@ const BusDetails = ({ route }) => {
   }, [lastConfirmedStopIdx, status]);
 
   // Calculate ETA and Countdown
-  useEffect(() => {
-    if (
-      busInfo?.speed > 0 &&
-      currentStopIdx + 1 < routeData?.stops?.length &&
-      busInfo?.latitude &&
-      busInfo?.longitude
-    ) {
-      const nextStop = routeData.stops[currentStopIdx + 1];
-      const dist = calculateDistance(
-        busInfo.latitude,
-        busInfo.longitude,
-        nextStop.lat,
-        nextStop.lng
-      );
-      const speedMS = (busInfo.speed * 1000) / 3600; // km/h to m/s
-      const etaSec = speedMS > 0 ? dist / speedMS : null;
-      if (etaSec) {
-        setEtaToNextStop(
-          `${Math.floor(etaSec / 60)} min ${Math.floor(etaSec % 60)} sec`
-        );
-        setCountdown(`${Math.max(0, Math.floor(etaSec))} sec`);
-      } else {
-        setEtaToNextStop("--");
-        setCountdown("--");
-      }
-    } else {
-      setEtaToNextStop("--");
-      setCountdown("--");
-    }
-  }, [busInfo, currentStopIdx, routeData]);
+  // Estimated Arrival Time (to next stop)
+  const { etaToNextStop, countdown } = useETA(
+    busInfo,
+    currentStopIdx,
+    routeData
+  );
+  // console.log(currentStopIdx);
 
   // Find user's nearest stop
   useEffect(() => {
@@ -283,8 +217,8 @@ const BusDetails = ({ route }) => {
     let nearest = null;
     routeData.stops.forEach((stop) => {
       const d = calculateDistance(
-        userLocation.latitude,
-        userLocation.longitude,
+        userLocation.lat,
+        userLocation.lng,
         stop.lat,
         stop.lng
       );
@@ -297,38 +231,45 @@ const BusDetails = ({ route }) => {
   }, [routeData, userLocation]);
 
   // Notifications: Alert when bus is near user's nearest stop
-  useEffect(() => {
-    if (
-      !notified &&
-      nearestUserStop &&
-      busInfo?.latitude &&
-      busInfo?.longitude
-    ) {
-      const dist = calculateDistance(
-        busInfo.latitude,
-        busInfo.longitude,
-        nearestUserStop.lat,
-        nearestUserStop.lng
-      );
-      if (dist < 100) {
-        Alert.alert(
-          "Bus Alert",
-          `Bus is arriving at your nearest stop: ${nearestUserStop.name}`
-        );
-        setNotified(true);
-      }
+  useArrivalNotification({
+    busInfo,
+    nearestUserStop,
+    notified,
+    setNotified,
+    calculateDistance,
+  });
+
+  // Check bus status
+  const checkBusStatus = async () => {
+    if (!busID) return;
+
+    try {
+      const status = await checkStatus(busID); // assumes checkStatus() returns true/false
+      setIsOnline(status);
+    } catch (error) {
+      console.error("Error checking bus status:", error);
     }
-  }, [busInfo, nearestUserStop, notified]);
+  };
+  // 🔁 Run every 10s
+  useEffect(() => {
+    checkBusStatus();
 
-  // Bus Route Progress
-  const routeProgress =
-    currentStopIdx >= 0
-      ? `Stop ${currentStopIdx + 1} of ${routeData.stops.length}`
-      : "--";
+    const interval = setInterval(() => {
+      checkBusStatus();
+    }, 10000);
 
-  const handleTabRoute = useCallback(() => setActiveTab("route"), []);
+    return () => clearInterval(interval); // cleanup
+  }, [busID]);
+
+  const handleTabRoute = useCallback(() => {
+    setActiveTab("route");
+    fetchCurrentLocation();
+  }, [fetchCurrentLocation]);
+
   const handleTabDetails = useCallback(() => setActiveTab("details"), []);
 
+  // Render each stop item
+  // This is memoized to prevent unnecessary re-renders
   const renderStopItem = useCallback(
     ({ item, index }) => (
       <MemoStopItem
@@ -343,6 +284,8 @@ const BusDetails = ({ route }) => {
     [currentStopIdx, routeData, blinkAnim, pulseAnim]
   );
 
+  // If routeData is not available or loading, show a loading indicator
+  // This prevents the app from crashing if routeData is null or undefined
   if (!routeData || loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -352,9 +295,14 @@ const BusDetails = ({ route }) => {
     );
   }
 
-  const status =
-    busInfo?.speed < 1 ? (!busInfo?.ignition ? "Parked" : "Stopped") : "Moving";
+  // If busInfo is not available, show a loading indicator
+  const rawSpeed = isOnline ? Number(busInfo?.speed) || 0 : 0;
+  const ignition = Boolean(busInfo?.ignition); // Assuming busInfo has an ignition property
+  const displaySpeed = `${rawSpeed.toFixed(1)} km/h`;
+  const status = rawSpeed < 1 ? (!ignition ? "Parked" : "Stopped") : "Moving";
 
+  // Determine next stop based on currentStopIdx
+  // If currentStopIdx is -1, it means bus is not at any stop
   const nextStop =
     currentStopIdx >= 0 && currentStopIdx < routeData.stops.length
       ? routeData.stops[currentStopIdx].name
@@ -362,19 +310,34 @@ const BusDetails = ({ route }) => {
 
   // Calculate distance between user and bus
   let userBusDistance = null;
-  if (busInfo?.latitude && busInfo?.longitude && userLocation) {
+  if (busInfo?.lat && busInfo?.lng && userLocation) {
     userBusDistance = calculateDistance(
-      busInfo.latitude,
-      busInfo.longitude,
-      userLocation.latitude,
-      userLocation.longitude
+      busInfo.lat,
+      busInfo.lng,
+      userLocation.lat,
+      userLocation.lng
     );
   }
 
+  // If userBusDistance is less than 30m, we consider the bus to be near the user
+  if (userBusDistance !== null && userBusDistance < 30) {
+    setNearestUserStop({
+      name: "You are near the bus",
+      lat: userLocation.lat,
+      lng: userLocation.lng,
+    });
+  } else if (nearestUserStop) {
+    setNearestUserStop({
+      name: nearestUserStop.name,
+      lat: nearestUserStop.lat,
+      lng: nearestUserStop.lng,
+    });
+  }
+  // Render the bus details screen
   return (
-    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+    <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{busID}</Text>
+        <Text style={styles.headerTitle}>{busInfo.busNumber}</Text>
         <View style={styles.statusBadge}>
           <Text style={styles.statusText}>{status}</Text>
         </View>
@@ -460,9 +423,7 @@ const BusDetails = ({ route }) => {
 
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Speed:</Text>
-                <Text style={styles.detailValue}>
-                  {busInfo?.speed?.toFixed(1)} km/h
-                </Text>
+                <Text style={styles.detailValue}>{displaySpeed}</Text>
               </View>
 
               <View style={styles.detailRow}>
@@ -477,13 +438,13 @@ const BusDetails = ({ route }) => {
                         // Calculate distance to next stop
                         if (
                           currentStopIdx + 1 < routeData.stops.length &&
-                          busInfo?.latitude &&
-                          busInfo?.longitude
+                          busInfo?.lat &&
+                          busInfo?.lng
                         ) {
                           const nextStop = routeData.stops[currentStopIdx + 1];
                           const dist = calculateDistance(
-                            busInfo.latitude,
-                            busInfo.longitude,
+                            busInfo.lat,
+                            busInfo.lng,
                             nextStop.lat,
                             nextStop.lng
                           );
@@ -509,7 +470,7 @@ const BusDetails = ({ route }) => {
           </View>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -675,7 +636,7 @@ const styles = StyleSheet.create({
   },
   detailsContainer: {
     flex: 1,
-    },
+  },
   detailCard: {
     backgroundColor: "#ffffff",
     borderRadius: normalize(16),
