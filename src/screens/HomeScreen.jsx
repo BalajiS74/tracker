@@ -18,21 +18,18 @@ import {
   FlatList,
   AppState,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { AuthContext } from "../context/AuthContext";
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
-import DefaultProfileImage from "../images/default-profile-image.png";
 import {
   handleShareLiveLocation,
   handleEmergency,
 } from "../services/userLocation.js";
+
 const BusCard = memo(({ route, nextStop, time, onPress }) => (
   <TouchableOpacity style={styles.busCard} onPress={onPress}>
     <View style={styles.busCardIconContainer}>
@@ -61,33 +58,87 @@ export default function HomeScreen({ navigation }) {
   const [busList, setBusList] = useState([]);
   const [emergencyMode, setEmergencyMode] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [profilePhoto, setProfilePhoto] = useState(null);
   const appState = useRef(AppState.currentState);
-  // console.log(user);
-  
+
+  const getRouteData = (busID) => {
+    const files = {
+      BUS123: require("../routedata/BUS123.json"),
+      BUS456: require("../routedata/BUS456.json"),
+      BUS789: require("../routedata/BUS789.json"),
+      BUS1011: require("../routedata/BUS1011.json"),
+    };
+    return files[busID] || null;
+  };
+
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371e3;
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
   const fetchBusData = useCallback(async () => {
     try {
-      const response = await fetch(
+      const res = await fetch(
         "https://bus-tracking-school-92dd9-default-rtdb.asia-southeast1.firebasedatabase.app/gps.json"
       );
-      const data = await response.json();
-      if (data && typeof data === "object") {
-        const list = Object.entries(data).map(([busID, busData]) => ({
+      const allBuses = await res.json();
+
+      const stats = [];
+
+      Object.entries(allBuses).forEach(([busID, busData]) => {
+        const routeData = getRouteData(busID);
+        if (!routeData || !busData.latitude || !busData.longitude) return;
+
+        let minDist = Infinity;
+        let nearestIdx = -1;
+
+        routeData.stops.forEach((stop, idx) => {
+          const d = calculateDistance(
+            busData.latitude,
+            busData.longitude,
+            stop.lat,
+            stop.lng
+          );
+          if (d < minDist) {
+            minDist = d;
+            nearestIdx = idx;
+          }
+        });
+
+        const currentStop = routeData.stops[nearestIdx];
+        const nextStop = currentStop?.nextStop || "End of Route";
+
+        stats.push({
           id: busID,
-          route: busData.route || `Bus ${busID}`,
-          nextStop: busData.nextStop || "Unknown Stop",
-          time: busData.updatedTime || "N/A",
-        }));
-        setBusList(list.slice(0, 3));
-      } else {
-        setBusList([]);
-      }
+          route: routeData.routeName || `Bus ${busID}`,
+          nextStop,
+          time: busData?.updatedTime || "Just now",
+        });
+
+        // Optional: Alert if bus is near a stop
+        if (minDist < 100) {
+          Alert.alert(`Bus ${busID}`, `Approaching: ${nextStop}`);
+        }
+      });
+
+      setBusList(stats);
     } catch (error) {
-      console.error("Failed to fetch bus data:", error);
+      console.error("❌ Failed to fetch bus stats", error);
     }
   }, []);
 
-  // 
+  useEffect(() => {
+    fetchBusData();
+    const interval = setInterval(fetchBusData, 30000);
+    return () => clearInterval(interval);
+  }, [fetchBusData]);
+
+  //
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       if (
@@ -145,14 +196,14 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.safetyButton}
-            onPress={handleShareLiveLocation}
+            onPress={() => handleShareLiveLocation(user)}
           >
             <Ionicons name="location" size={wp("6%")} color="#4b0082" />
             <Text style={styles.safetyButtonText}>Share Location</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.safetyButton}
-            onPress={() => navigation.navigate("SafetyTips")}
+            onPress={() => navigation.navigate("Safetytips")}
           >
             <Ionicons name="shield-checkmark" size={wp("6%")} color="#4b0082" />
             <Text style={styles.safetyButtonText}>Safety Tips</Text>
@@ -204,7 +255,7 @@ export default function HomeScreen({ navigation }) {
         keyExtractor={(bus) => bus.id}
         renderItem={({ item }) => (
           <BusCard
-            route={`${item.route} ${item.isWomenOnly ? "👩‍🎓" : ""}`}
+            route={`${item.route}`}
             nextStop={item.nextStop}
             time={item.time}
             onPress={() => handleBusPress(item.id)}
@@ -318,13 +369,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: hp("1%"),
+    gap: 4,
   },
   safetyButton: {
     backgroundColor: "#fff",
     borderRadius: wp("3%"),
     padding: wp("2%"),
     alignItems: "center",
-    width: wp("28%"),
+    width: wp("30%"),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -336,7 +388,6 @@ const styles = StyleSheet.create({
     color: "#333",
     marginTop: hp("0.5%"),
     fontWeight: "500",
-    // backgroundColor: "rgba(0, 104, 130, 0.8)",
     padding: 5,
   },
   promoBanner: {
@@ -459,7 +510,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: hp("3%"),
     right: wp("5%"),
-    backgroundColor: "#ff3b30", 
+    backgroundColor: "#ff3b30",
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: hp("1.5%"),

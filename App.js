@@ -19,7 +19,7 @@ const LoginScreen = React.lazy(() => import("./src/screens/LoginScreen"));
 const Profile = React.lazy(() => import("./src/screens/Profile"));
 const HelpSupportScreen = React.lazy(() => import("./src/screens/HelpSupportScreen"));
 const TermsPrivacyScreen = React.lazy(() => import("./src/screens/TermsPrivacyScreen"));
-
+const SafetytipsScreen   = React.lazy(()=>import('./src/screens/SafetyTips'))
 // Auth Context
 import { AuthProvider, AuthContext } from "./src/context/AuthContext";
 
@@ -47,6 +47,7 @@ const MemoTrack = React.memo(Track);
 const MemoProfile = React.memo(Profile);
 const MemoHelpSupport = React.memo(HelpSupportScreen);
 const MemoTermsPrivacy = React.memo(TermsPrivacyScreen);
+const MemoSafetytipsScreen = React.memo(SafetytipsScreen)
 
 function MainTabs() {
   const insets = useSafeAreaInsets();
@@ -106,7 +107,7 @@ function MainStack() {
               <Stack.Screen
                 name="BusDetails"
                 children={props => <BusDetails {...props} isAdmin={isAdmin} />}
-                options={{ title: "Bus Details" }}
+                options={{ title: "Bus Details",headerShown:false}}
               />
               <Stack.Screen
                 name="HelpSupport"
@@ -116,6 +117,11 @@ function MainStack() {
               <Stack.Screen
                 name="TermsPrivacy"
                 component={MemoTermsPrivacy}
+                options={{ title: "Terms & Privacy" }}
+              />
+              <Stack.Screen
+                name="Safetytips"
+                component={MemoSafetytipsScreen}
                 options={{ title: "Terms & Privacy" }}
               />
             </>

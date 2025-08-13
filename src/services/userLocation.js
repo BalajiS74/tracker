@@ -2,11 +2,12 @@ import * as Location from "expo-location";
 import * as SMS from "expo-sms";
 import { Alert, Linking, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useContext } from "react";
-import { AuthContext } from "../context/AuthContext";
 
-export const handleShareLiveLocation = async () => {
-  const {user} = useContext(AuthContext)
+/**
+ * Share live location with emergency contacts
+ * @param {Object} user - The logged-in user object (from AuthContext)
+ */
+export const handleShareLiveLocation = async (user) => {
   try {
     // Step 1: Request location permissions
     let { status } = await Location.getForegroundPermissionsAsync();
@@ -37,16 +38,16 @@ export const handleShareLiveLocation = async () => {
       }
     }
 
-    // Step 2: Get contact numbers
+    // Step 2: Get stored contacts and role
     const parentPhone = await AsyncStorage.getItem("parentPhone");
     const emergencyPhone = await AsyncStorage.getItem("emergencyPhone");
     const role = await AsyncStorage.getItem("role");
 
     const fallbackNumbers = [
-      "9342721886", // AO
-      "9597483659", // Principal
-      "9442077569", // Class Staff 1
-      "9342496269", // Class Staff 2
+      "9342721886", // Rasukutti sir
+      "9597483659", // AO sir
+      "9442077569", // Principal sir
+      "9342496269", // Ponvishnu
     ];
 
     const emergencyNumbers = [];
@@ -73,25 +74,37 @@ export const handleShareLiveLocation = async () => {
           text: "Share Now",
           onPress: async () => {
             try {
+              // Get current location
               const location = await Location.getCurrentPositionAsync({
                 accuracy: Location.Accuracy.High,
               });
+
               const { latitude: lat, longitude: lng } = location.coords;
               const mapsLink = `https://www.google.com/maps?q=${lat},${lng}`;
-              const message = `i"m ${user.name} I’m in danger but can’t call or text.🚨 Emergency! My current location is: ${mapsLink}`;
+              const message = `I'm ${
+                user?.name || "Unknown"
+              } — I’m in danger but can’t call or text. 🚨 Emergency! My current location is: ${mapsLink}`;
 
+              // Check SMS availability
               const isAvailable = await SMS.isAvailableAsync();
               if (!isAvailable) {
                 Alert.alert("Error", "SMS is not available on this device");
                 return;
               }
 
-              const { result } = await SMS.sendSMSAsync(emergencyNumbers, message);
+              // Send SMS
+              const { result } = await SMS.sendSMSAsync(
+                emergencyNumbers,
+                message
+              );
 
-              if (result === "sent") {
-                Alert.alert("Success", "Location shared successfully!");
+              // Handle result for all cases
+              if (result === "sent" || result === "unknown") {
+                Alert.alert("Success", "Location shared with your parents");
+              } else if (result === "cancelled") {
+                Alert.alert("Notice", "You cancelled the SMS.");
               } else {
-                Alert.alert("Notice", "SMS was not sent");
+                Alert.alert("Notice", `SMS status: ${result}`);
               }
             } catch (error) {
               console.error("SMS error:", error);
@@ -108,13 +121,20 @@ export const handleShareLiveLocation = async () => {
   }
 };
 
+/**
+ * Trigger emergency mode
+ * @param {Function} setEmergencyMode - State setter for emergency mode
+ */
 export const handleEmergency = (setEmergencyMode) => {
   setEmergencyMode(true);
   Alert.alert(
     "Emergency Alert",
     "Help is on the way! Your location is being shared with campus security and trusted contacts.",
     [
-      { text: "Call Security", onPress: () => Linking.openURL(`tel:${112}`) },
+      {
+        text: "Call Security",
+        onPress: () => Linking.openURL(`tel:${9342721886}`),
+      },
       {
         text: "Cancel Alert",
         onPress: () => setEmergencyMode(false),

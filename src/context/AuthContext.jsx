@@ -1,8 +1,12 @@
 import React, { createContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// Create the context
 export const AuthContext = createContext();
 
+/**
+ * AuthProvider: Wraps your app and provides auth state
+ */
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userToken, setUserToken] = useState(null);
@@ -10,6 +14,7 @@ export const AuthProvider = ({ children }) => {
   const [relatedTo, setRelatedTo] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Load auth from AsyncStorage on startup
   useEffect(() => {
     const loadStoredAuth = async () => {
       try {
@@ -30,7 +35,7 @@ export const AuthProvider = ({ children }) => {
           }
         }
       } catch (error) {
-        console.error("Auth load error:", error);
+        console.error("❌ Auth load error:", error);
       } finally {
         setIsLoading(false);
       }
@@ -39,6 +44,9 @@ export const AuthProvider = ({ children }) => {
     loadStoredAuth();
   }, []);
 
+  /**
+   * Login handler — stores everything securely
+   */
   const login = async (userData, token, userRole, relatedStudent = null) => {
     try {
       const tasks = [
@@ -53,30 +61,21 @@ export const AuthProvider = ({ children }) => {
         );
       }
 
-      // Save emergency phone for student or staff
-      if (userData?.role === "student" && userData.parents?.length > 0) {
-        tasks.push(
-          AsyncStorage.setItem("parentPhone", userData.parents[0].phone)
-        );
+      // Store emergency contact
+      const parentPhone = userData?.role === "student" ? userData?.parents?.[0]?.phone : null;
+      const emergencyPhone = userData?.role === "staff" ? userData?.emergencyContact?.phone : null;
+
+      if (parentPhone) {
+        tasks.push(AsyncStorage.setItem("parentPhone", parentPhone));
       }
 
-      if (
-        userData?.role === "staff" &&
-        userData.emergencyContact?.phone
-      ) {
-        tasks.push(
-          AsyncStorage.setItem(
-            "emergencyPhone",
-            userData.emergencyContact.phone
-          )
-        );
+      if (emergencyPhone) {
+        tasks.push(AsyncStorage.setItem("emergencyPhone", emergencyPhone));
       }
 
-      // Save avatar URL from user
+      // Save avatar if exists
       if (userData?.avatar) {
-        tasks.push(
-          AsyncStorage.setItem("profilePhoto", userData.avatar)
-        );
+        tasks.push(AsyncStorage.setItem("profilePhoto", userData.avatar));
       }
 
       await Promise.all(tasks);
@@ -86,10 +85,13 @@ export const AuthProvider = ({ children }) => {
       setRole(userRole);
       if (relatedStudent) setRelatedTo(relatedStudent);
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("❌ Login error:", error);
     }
   };
 
+  /**
+   * Logout handler — clears everything from AsyncStorage
+   */
   const logout = async () => {
     try {
       await AsyncStorage.multiRemove([
@@ -106,19 +108,22 @@ export const AuthProvider = ({ children }) => {
       setRole(null);
       setRelatedTo(null);
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("❌ Logout error:", error);
     }
   };
 
+  /**
+   * Refresh user object (e.g., after avatar or info change)
+   */
   const refreshUser = async (newUserData) => {
     try {
       await AsyncStorage.setItem("user", JSON.stringify(newUserData));
-      if (newUserData.avatar) {
+      if (newUserData?.avatar) {
         await AsyncStorage.setItem("profilePhoto", newUserData.avatar);
       }
       setUser(newUserData);
     } catch (error) {
-      console.error("User refresh error:", error);
+      console.error("❌ User refresh error:", error);
     }
   };
 

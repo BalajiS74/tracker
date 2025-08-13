@@ -1,4 +1,7 @@
 // src/services/checkBusStatus.js
+// import * as Notifications from 'expo-notifications';
+// import haversine from 'haversine-distance'; // distance calculation
+
 export const checkStatus = async (busID) => {
   if (!busID) return false;
 
@@ -13,11 +16,31 @@ export const checkStatus = async (busID) => {
       const lastSeen = data.lastSeen * 1000;
       const isRecent = now - lastSeen <= 30000;
       return data.status === true && isRecent;
-    } else {
-      return false;
     }
+    return false;
   } catch (err) {
-    console.error("❌ Error fetching bus status:", err);
+    console.error(`❌ Error fetching bus status for ${busID}:`, err);
     return false;
   }
 };
+
+// function checkDelayAlert(scheduledTime, eta) {
+//   const delayMinutes = eta - scheduledTime;
+//   if (delayMinutes > 5) {
+//     sendNotification("Bus Delay ⏳", `Your bus is running ${delayMinutes} minutes late.`);
+//   }
+// }
+
+
+// function checkArrivalAlert(busCoords, studentCoords) {
+//   const distance = haversine(busCoords, studentCoords); // in meters
+//   if (distance <= 500) {
+//     Notifications.scheduleNotificationAsync({
+//       content: {
+//         title: "Bus is Almost Here 🚍",
+//         body: "Your bus is just 500 meters away!",
+//       },
+//       trigger: null
+//     });
+//   }
+// }

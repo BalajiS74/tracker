@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useCallback, memo } from "react";
+import  { useState, useEffect, useCallback, memo } from "react";
 import { 
   View, 
   Text, 
   StyleSheet, 
   TextInput, 
-  ScrollView, 
   TouchableOpacity,
   RefreshControl,
   SafeAreaView,
   StatusBar,
+  
   Dimensions,
   FlatList
 } from "react-native";

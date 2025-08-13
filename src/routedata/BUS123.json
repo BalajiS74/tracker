@@ -7,9 +7,8 @@
             "lat": 8.713928,
             "lng": 77.3896484,
             "isStartingPoint": true,
-            "m":0,
+            "m": 0,
             "nextStop": "Vk Puram Theter"
-
         },
         {
             "name": "Vk Puram Theter",
@@ -22,15 +21,15 @@
             "name": "Ambalavanapuram",
             "lat": 8.7113376,
             "lng": 77.3998239,
-            "km":1.5,
+            "km": 1.5,
             "nextStop": "Sivanthipuram"
         },
         {
             "name": "Sivanthipuram",
             "lat": 8.7101555,
             "lng": 77.4067209,
-            "km":2.5,
-            "nextStop":"Adayakarungulam"
+            "km": 2.5,
+            "nextStop": "Adayakarungulam"
         },
         {
             "name": "Adayakarungulam",
@@ -60,10 +59,10 @@
             "name": "Kalyani Theatre",
             "lat": 8.7037727,
             "lng": 77.4469314,
-            "nextStop": "Agasthiyar Kovil Bus Stop, Ambasamudram"
+            "nextStop": "Agasthiyar Kovil Bus Stop"
         },
         {
-            "name": "Agasthiyar Kovil Bus Stop, Ambasamudram",
+            "name": "Agasthiyar Kovil Bus Stop",
             "lat": 8.7038189,
             "lng": 77.4509767,
             "nextStop": "Ambasamudram Arch"
@@ -149,7 +148,8 @@
         {
             "name": "Scad Polytechnic College",
             "lat": 8.6635226,
-            "lng": 77.5672354
+            "lng": 77.5672354,
+            "nextStop": "bus reached"
         }
     ]
 }

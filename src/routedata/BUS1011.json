@@ -1,6 +1,6 @@
 {
     "busID": "BUS1011",
-    "routeName": "SCAD to Nagarkovil & Saradha College",
+    "routeName": "SCAD to Kavalkinaru",
     "stops": [
         {
             "name": "SCAD Polytechnic College",
@@ -162,7 +162,8 @@
         {
             "name": "Kavalkinaru",
             "lat": 8.2776589,
-            "lng": 77.5680587
+            "lng": 77.5680587,
+            "nextStop": "Bus reached"
         }
     ]
 }

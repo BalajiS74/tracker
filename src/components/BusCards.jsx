@@ -1,33 +1,31 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useState, useEffect } from "react";
-import { checkStatus } from "../services/checkBusStatus"; // Import the checkStatus function
+import { useState, useEffect, useCallback } from "react";
+import { checkStatus } from "../services/checkBusStatus";
+
 export default function BusCard({ bus = {}, onPress }) {
-  const [isOnline, setIsOnline] = useState(true);
-  const checkBusStatus = async () => {
-    const busID = bus.busID || bus.id; // Ensure busID is defined
+  const [isOnline, setIsOnline] = useState(false);
+  const [checked, setChecked] = useState(false); // for initial load status
+
+  const checkBusStatus = useCallback(async () => {
+    const busID = bus.busID || bus.id;
     if (!busID) return;
 
     try {
-      const status = await checkStatus(busID); // assumes checkStatus() returns true/false
+      const status = await checkStatus(busID);
       setIsOnline(status);
-      console.log(status);
-      
+      setChecked(true);
     } catch (error) {
-      console.error("Error checking bus status:", error);
+      console.error(`❌ Error checking status for ${busID}:`, error);
     }
-  };
-  // 🔁 Run every 10s
+  }, [bus.busID, bus.id]);
+
   useEffect(() => {
-     checkBusStatus();
-
-    const interval = setInterval(() => {
-      checkBusStatus();
-    }, 10000);
-
-    return () => clearInterval(interval); // cleanup
-  }, [bus.busID]);
+    checkBusStatus();
+    const interval = setInterval(checkBusStatus, 10000);
+    return () => clearInterval(interval);
+  }, [checkBusStatus]);
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
@@ -37,12 +35,10 @@ export default function BusCard({ bus = {}, onPress }) {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        {/* Bus Icon Bubble */}
         <View style={styles.iconBubble}>
           <Ionicons name="bus" size={24} color="#fff" />
         </View>
 
-        {/* Bus Info */}
         <View style={styles.infoContainer}>
           <Text style={styles.routeText} numberOfLines={1}>
             {bus.route || "Campus Express Route"}
@@ -50,16 +46,21 @@ export default function BusCard({ bus = {}, onPress }) {
           <Text style={styles.busNumberText}>#{bus.busNumber || "000"}</Text>
         </View>
 
-        {/* Status Indicator */}
         <View style={styles.statusPill}>
           <View
             style={[
               styles.statusDot,
-              { backgroundColor: isOnline ? "green" : "red" },
+              {
+                backgroundColor: !checked
+                  ? "gray"
+                  : isOnline
+                  ? "limegreen"
+                  : "tomato",
+              },
             ]}
           />
           <Text style={styles.statusText}>
-            {isOnline ? "Online" : "Offline"}
+            {!checked ? "Checking..." : isOnline ? "Online" : "Offline"}
           </Text>
         </View>
       </LinearGradient>
@@ -79,7 +80,6 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.3)",
     backgroundColor: "rgba(120, 90, 230, 0.3)",
     overflow: "hidden",
-    position: "relative",
   },
   iconBubble: {
     width: 50,
@@ -114,7 +114,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
-    marginRight: 5,
   },
   statusDot: {
     width: 8,
