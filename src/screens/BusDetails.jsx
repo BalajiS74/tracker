@@ -13,11 +13,6 @@ import {
   StatusBar,
   Platform,
 } from "react-native";
-import {
-  useBusTracker,
-  useETA,
-  useArrivalNotification,
-} from "../hooks/useBusTracker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Speech from "expo-speech";
 import * as Location from "expo-location";
@@ -105,13 +100,19 @@ const BusDetails = ({ route }) => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("route");
   const [userLocation, setUserLocation] = useState(null);
+
+  // Estimated Arrival Time (to next stop)
+  const [etaToNextStop, setEtaToNextStop] = useState("--");
+  // Stop ETA Countdown
+  const [countdown, setCountdown] = useState("--");
+  // User's Nearest Stop
   const [nearestUserStop, setNearestUserStop] = useState(null);
+  // Notifications
   const [notified, setNotified] = useState(false);
 
   const blinkAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Animation effects
   useEffect(() => {
     if (activeTab !== "route") return;
 
@@ -158,17 +159,16 @@ const BusDetails = ({ route }) => {
     };
   }, [activeTab, blinkAnim, pulseAnim]);
 
-  // Load route data
   useEffect(() => {
     const data = getRouteData(busID);
     setRouteData(data);
   }, [busID]);
 
-  // Bus location tracking
+  // 1. Wrap the fetch function with useCallback
   const fetchCurrentLocation = useCallback(async () => {
     if (!routeData || !busID) return;
 
-    const firebaseURL = `https://bus-tracking-school-92dd9-default-rtdb.asia-southeast1.firebasedatabase.app/gps/${busID}.json`;
+    const firebaseURL =` https://bus-tracking-school-92dd9-default-rtdb.asia-southeast1.firebasedatabase.app/gps/${busID}.json`;
 
     try {
       const response = await axios.get(firebaseURL);
@@ -181,7 +181,7 @@ const BusDetails = ({ route }) => {
       const isBusOnline = data?.status === true && isRecent;
 
       setBusOnlineStatus(isBusOnline);
-      if (!data?.latitude || !data?.longitude || !isBusOnline) {
+      if (!data?.latitude || !data?.longitude ||!isBusOnline) {
         setCurrentStopIdx(-1);
         setLoading(false);
         return;
@@ -209,37 +209,27 @@ const BusDetails = ({ route }) => {
 
       setCurrentStopIdx(lastConfirmedStopIdx);
 
+      // ✅ Set next stop using nextStop field from current stop
       const currentStop = routeData.stops[lastConfirmedStopIdx];
       const next = currentStop?.nextStop || null;
       setUpcommingStop(next);
 
       setLoading(false);
     } catch (e) {
-      console.error("Error fetching location:", e.message);
+      console.error("❌ Axios error fetching location:", e.message);
       setCurrentStopIdx(-1);
       setLoading(false);
     }
   }, [routeData, busID, lastConfirmedStopIdx]);
+  // Important dependencies!
 
-  // Bus status check
-  const checkStatus = async (busId) => {
-    try {
-      const response = await axios.get(`your-api-endpoint/${busId}`);
-      return response.data.status;
-    } catch (error) {
-      console.error("Error checking status:", error);
-      return false;
-    }
-  };
-
-  // Start location tracking
   useEffect(() => {
-    fetchCurrentLocation();
-    const interval = setInterval(fetchCurrentLocation, 5000);
+    fetchCurrentLocation(); // call once
+    const interval = setInterval(fetchCurrentLocation, 5000); // every 5s
     return () => clearInterval(interval);
-  }, [fetchCurrentLocation]);
+  }, [fetchCurrentLocation]); // ✅ correct dependency
 
-  // Get user location
+  // get the user location and ask the permmission
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -252,39 +242,7 @@ const BusDetails = ({ route }) => {
     })();
   }, []);
 
-  // Check bus status periodically
-  useEffect(() => {
-    const checkBusStatus = async () => {
-      if (!busID) return;
-      try {
-        const status = await checkStatus(busID);
-        setBusOnlineStatus(status);
-      } catch (error) {
-        console.error("Error checking bus status:", error);
-      }
-    };
-
-    checkBusStatus();
-    const interval = setInterval(checkBusStatus, 10000);
-    return () => clearInterval(interval);
-  }, [busID]);
-
-  // Speech announcement for stops
-  useEffect(() => {
-    if (!routeData || lastConfirmedStopIdx < 0) return;
-
-    const stop = routeData.stops[lastConfirmedStopIdx];
-    if (!stop) return;
-
-    if (status !== "Parked") {
-      Speech.speak(`Next stop is ${stop.name}`);
-    } else {
-      Speech.stop();
-    }
-  }, [lastConfirmedStopIdx, status]);
-
-  // Distance calculation
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3;
     const φ1 = (lat1 * Math.PI) / 180;
     const φ2 = (lat2 * Math.PI) / 180;
@@ -294,17 +252,86 @@ const BusDetails = ({ route }) => {
       Math.sin(Δφ / 2) ** 2 +
       Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  };
+  }
+  // speak the bus stop name
+  useEffect(() => {
+    if (!routeData || lastConfirmedStopIdx < 0) return;
 
-  // Tab handlers
+    const stop = routeData.stops[lastConfirmedStopIdx];
+    if (!stop) return;
+
+    // Only announce if bus is NOT parked
+    if (status !== "Parked") {
+      Speech.speak(`Next stop is  ${stop.name}`);
+    } else {
+      Speech.stop(); // Optional: stop any ongoing speech if parked
+    }
+  }, [lastConfirmedStopIdx, status]);
+
+  // Calculate ETA and Countdown for next stop
+  useEffect(() => {
+    if (
+      busInfo?.speed > 0 &&
+      currentStopIdx + 1 < routeData?.stops?.length &&
+      busInfo?.latitude &&
+      busInfo?.longitude
+    ) {
+      const nextStop = routeData.stops[currentStopIdx + 1];
+      const dist = calculateDistance(
+        busInfo.latitude,
+        busInfo.longitude,
+        nextStop.lat,
+        nextStop.lng
+      );
+      const speedMS = (busInfo.speed * 1000) / 3600; // km/h to m/s
+      const etaSec = speedMS > 0 ? dist / speedMS : null;
+      if (etaSec) {
+        setEtaToNextStop(
+         `${Math.floor(etaSec / 60)} min ${Math.floor(etaSec % 60)} sec`
+        );
+        setCountdown(`${Math.max(0, Math.floor(etaSec))} sec`);
+      } else {
+        setEtaToNextStop("--");
+        setCountdown("--");
+      }
+    } else {
+      setEtaToNextStop("--");
+      setCountdown("--");
+    }
+  }, [busInfo, currentStopIdx, routeData]);
+
+  // Notifications: Alert when bus is near user's nearest stop
+  useEffect(() => {
+    if (
+      !notified &&
+      nearestUserStop &&
+      busInfo?.latitude &&
+      busInfo?.longitude
+    ) {
+      const dist = calculateDistance(
+        busInfo.latitude,
+        busInfo.longitude,
+        nearestUserStop.lat,
+        nearestUserStop.lng
+      );
+      if (dist < 100) {
+        Alert.alert(
+          "Bus Alert",
+         ` Bus is arriving at your nearest stop: ${nearestUserStop.name}`
+        );
+        setNotified(true);
+      }
+    }
+  }, [busInfo, nearestUserStop, notified]);
+
+  // handel route tap
   const handleTabRoute = useCallback(() => {
     setActiveTab("route");
-    fetchCurrentLocation();
+    fetchCurrentLocation(); // ✅ this works now
   }, [fetchCurrentLocation]);
-
   const handleTabDetails = useCallback(() => setActiveTab("details"), []);
 
-  // Stop item renderer
+  // stop card render
   const renderStopItem = useCallback(
     ({ item, index }) => (
       <MemoStopItem
@@ -319,7 +346,6 @@ const BusDetails = ({ route }) => {
     [currentStopIdx, routeData, blinkAnim, pulseAnim]
   );
 
-  // Loading state
   if (!routeData || loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -330,6 +356,7 @@ const BusDetails = ({ route }) => {
   }
 
   const computedSpeed = isOnline ? busInfo?.speed ?? 0 : 0.0;
+
   const status = !isOnline
     ? "Parked"
     : computedSpeed <= 2
@@ -347,36 +374,10 @@ const BusDetails = ({ route }) => {
     );
   }
 
-  // Set nearest user stop
-  useEffect(() => {
-    if (userBusDistance !== null && userBusDistance < 30) {
-      setNearestUserStop({
-        name: "You are near the bus",
-        lat: userLocation.latitude,
-        lng: userLocation.longitude,
-      });
-    } else if (nearestUserStop) {
-      setNearestUserStop({
-        name: nearestUserStop.name,
-        lat: nearestUserStop.lat,
-        lng: nearestUserStop.lng,
-      });
-    }
-  }, [userBusDistance, userLocation]);
-
-  // Notifications
-  useArrivalNotification({
-    busInfo,
-    nearestUserStop,
-    notified,
-    setNotified,
-    calculateDistance,
-  });
-
   return (
-    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+    <View style={styles.container} edges={["top", "left", "right"]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{busInfo?.busNumber || busID}</Text>
+        <Text style={styles.headerTitle}>{busID}</Text>
         <View style={styles.statusBadge}>
           <Text style={styles.statusText}>{status}</Text>
         </View>
@@ -441,6 +442,7 @@ const BusDetails = ({ route }) => {
                 <Text style={styles.detailValue}>
                   {userBusDistance !== null && userBusDistance < 30
                     ? (() => {
+                        // Calculate distance to next stop
                         if (
                           currentStopIdx + 1 < routeData.stops.length &&
                           busInfo?.latitude &&
@@ -462,13 +464,23 @@ const BusDetails = ({ route }) => {
                     : "--"}
                 </Text>
               </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Estimated Arrival Time:</Text>
+                <Text style={styles.detailValue}>{etaToNextStop}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Stop ETA Countdown:</Text>
+                <Text style={styles.detailValue}>{countdown}</Text>
+              </View>
             </View>
           </View>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
+
 // styles
 const styles = StyleSheet.create({
   container: {
