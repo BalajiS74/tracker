@@ -25,18 +25,10 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
-<<<<<<< HEAD
-=======
-import DefaultProfileImage from "../images/default-profile-image.png";
->>>>>>> 94f820d72ce582d368de01463ed3c39ba57fbc95
 import {
   handleShareLiveLocation,
   handleEmergency,
 } from "../services/userLocation.js";
-<<<<<<< HEAD
-
-=======
->>>>>>> 94f820d72ce582d368de01463ed3c39ba57fbc95
 const BusCard = memo(({ route, nextStop, time, onPress }) => (
   <TouchableOpacity style={styles.busCard} onPress={onPress}>
     <View style={styles.busCardIconContainer}>
@@ -65,7 +57,6 @@ export default function HomeScreen({ navigation }) {
   const [busList, setBusList] = useState([]);
   const [emergencyMode, setEmergencyMode] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-<<<<<<< HEAD
   const appState = useRef(AppState.currentState);
 
   const getRouteData = (busID) => {
@@ -89,12 +80,6 @@ export default function HomeScreen({ navigation }) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   };
 
-=======
-  const [profilePhoto, setProfilePhoto] = useState(null);
-  const appState = useRef(AppState.currentState);
-  // console.log(user);
-  
->>>>>>> 94f820d72ce582d368de01463ed3c39ba57fbc95
   const fetchBusData = useCallback(async () => {
     try {
       const res = await fetch(
@@ -129,7 +114,6 @@ export default function HomeScreen({ navigation }) {
 
         stats.push({
           id: busID,
-<<<<<<< HEAD
           route: routeData.routeName || `Bus ${busID}`,
           nextStop,
           time: busData?.updatedTime || "Just now",
@@ -142,16 +126,6 @@ export default function HomeScreen({ navigation }) {
       });
 
       setBusList(stats);
-=======
-          route: busData.route || `Bus ${busID}`,
-          nextStop: busData.nextStop || "Unknown Stop",
-          time: busData.updatedTime || "N/A",
-        }));
-        setBusList(list.slice(0, 3));
-      } else {
-        setBusList([]);
-      }
->>>>>>> 94f820d72ce582d368de01463ed3c39ba57fbc95
     } catch (error) {
       console.error("❌ Failed to fetch bus stats", error);
     }
@@ -159,31 +133,11 @@ export default function HomeScreen({ navigation }) {
 
   // 
   useEffect(() => {
-<<<<<<< HEAD
-=======
-    const subscription = AppState.addEventListener("change", (nextAppState) => {
-      if (
-        appState.current.match(/inactive|background/) &&
-        nextAppState === "active"
-      ) {
-        setEmergencyMode(false); // reset emergency mode when app comes back
-      }
-      appState.current = nextAppState;
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, []);
-
-  useEffect(() => {
->>>>>>> 94f820d72ce582d368de01463ed3c39ba57fbc95
     fetchBusData();
     const interval = setInterval(fetchBusData, 30000);
     return () => clearInterval(interval);
   }, [fetchBusData]);
 
-<<<<<<< HEAD
   //
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextAppState) => {
@@ -207,8 +161,6 @@ export default function HomeScreen({ navigation }) {
     return () => clearInterval(interval);
   }, [fetchBusData]);
 
-=======
->>>>>>> 94f820d72ce582d368de01463ed3c39ba57fbc95
   const handleBusPress = useCallback(
     (busID) => navigation.navigate("BusDetails", { busID }),
     [navigation]

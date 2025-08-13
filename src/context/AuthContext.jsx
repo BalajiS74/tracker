@@ -65,9 +65,7 @@ export const AuthProvider = ({ children }) => {
       const parentPhone =
         userData?.role === "student" ? userData?.parents?.[0]?.phone : null;
       const emergencyPhone =
-        userData?.role === "staff"
-          ? userData?.emergencyContact?.phone
-          : null;
+        userData?.role === "staff" ? userData?.emergencyContact?.phone : null;
 
       if (parentPhone) {
         tasks.push(AsyncStorage.setItem("parentPhone", parentPhone));

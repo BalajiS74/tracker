@@ -105,17 +105,13 @@ const BusDetails = ({ route }) => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("route");
   const [userLocation, setUserLocation] = useState(null);
-// console.log(currentStopIdx);
-
-
-  // User's Nearest Stop
   const [nearestUserStop, setNearestUserStop] = useState(null);
-  // Notifications
   const [notified, setNotified] = useState(false);
 
   const blinkAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  // Animation effects
   useEffect(() => {
     if (activeTab !== "route") return;
 
@@ -162,12 +158,13 @@ const BusDetails = ({ route }) => {
     };
   }, [activeTab, blinkAnim, pulseAnim]);
 
+  // Load route data
   useEffect(() => {
     const data = getRouteData(busID);
     setRouteData(data);
   }, [busID]);
 
-  // 1. Wrap the fetch function with useCallback
+  // Bus location tracking
   const fetchCurrentLocation = useCallback(async () => {
     if (!routeData || !busID) return;
 
@@ -212,28 +209,37 @@ const BusDetails = ({ route }) => {
 
       setCurrentStopIdx(lastConfirmedStopIdx);
 
-      // ✅ Set next stop using `nextStop` field from current stop
       const currentStop = routeData.stops[lastConfirmedStopIdx];
       const next = currentStop?.nextStop || null;
       setUpcommingStop(next);
 
       setLoading(false);
     } catch (e) {
-      console.error("❌ Axios error fetching location:", e.message);
+      console.error("Error fetching location:", e.message);
       setCurrentStopIdx(-1);
       setLoading(false);
     }
   }, [routeData, busID, lastConfirmedStopIdx]);
-  // Important dependencies!
 
-  // get the user location
+  // Bus status check
+  const checkStatus = async (busId) => {
+    try {
+      const response = await axios.get(`your-api-endpoint/${busId}`);
+      return response.data.status;
+    } catch (error) {
+      console.error("Error checking status:", error);
+      return false;
+    }
+  };
+
+  // Start location tracking
   useEffect(() => {
-    fetchCurrentLocation(); // call once
-    const interval = setInterval(fetchCurrentLocation, 5000); // every 5s
+    fetchCurrentLocation();
+    const interval = setInterval(fetchCurrentLocation, 5000);
     return () => clearInterval(interval);
-  }, [fetchCurrentLocation]); // ✅ correct dependency
+  }, [fetchCurrentLocation]);
 
-  // get the user location and ask the permmission
+  // Get user location
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -246,7 +252,39 @@ const BusDetails = ({ route }) => {
     })();
   }, []);
 
-  function calculateDistance(lat1, lon1, lat2, lon2) {
+  // Check bus status periodically
+  useEffect(() => {
+    const checkBusStatus = async () => {
+      if (!busID) return;
+      try {
+        const status = await checkStatus(busID);
+        setBusOnlineStatus(status);
+      } catch (error) {
+        console.error("Error checking bus status:", error);
+      }
+    };
+
+    checkBusStatus();
+    const interval = setInterval(checkBusStatus, 10000);
+    return () => clearInterval(interval);
+  }, [busID]);
+
+  // Speech announcement for stops
+  useEffect(() => {
+    if (!routeData || lastConfirmedStopIdx < 0) return;
+
+    const stop = routeData.stops[lastConfirmedStopIdx];
+    if (!stop) return;
+
+    if (status !== "Parked") {
+      Speech.speak(`Next stop is ${stop.name}`);
+    } else {
+      Speech.stop();
+    }
+  }, [lastConfirmedStopIdx, status]);
+
+  // Distance calculation
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371e3;
     const φ1 = (lat1 * Math.PI) / 180;
     const φ2 = (lat2 * Math.PI) / 180;
@@ -256,55 +294,17 @@ const BusDetails = ({ route }) => {
       Math.sin(Δφ / 2) ** 2 +
       Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
-  // speak the bus stop name
-  useEffect(() => {
-    if (!routeData || lastConfirmedStopIdx < 0) return;
-
-    const stop = routeData.stops[lastConfirmedStopIdx];
-    if (!stop) return;
-
-    // Only announce if bus is NOT parked
-    if (status !== "Parked") {
-      Speech.speak(`Next stop is ${stop.name}`);
-    } else {
-      Speech.stop(); // Optional: stop any ongoing speech if parked
-    }
-  }, [lastConfirmedStopIdx, status]);
-
-
-  // Notifications: Alert when bus is near user's nearest stop
-  useArrivalNotification({
-    busInfo,
-    nearestUserStop,
-    notified,
-    setNotified,
-    calculateDistance,
-  });
-
-  // Check bus status
-  const checkBusStatus = async () => {
-    if (!busID) return;
-
-    try {
-      const status = await checkStatus(busID); // assumes checkStatus() returns true/false
-      setIsOnline(status);
-    } catch (error) {
-      console.error("Error checking bus status:", error);
-    }
   };
-  // 🔁 Run every 10s
-  useEffect(() => {
-    checkBusStatus();
 
-  // handel route tap
+  // Tab handlers
   const handleTabRoute = useCallback(() => {
     setActiveTab("route");
-    fetchCurrentLocation(); // ✅ this works now
+    fetchCurrentLocation();
   }, [fetchCurrentLocation]);
+
   const handleTabDetails = useCallback(() => setActiveTab("details"), []);
 
-  // stop card render
+  // Stop item renderer
   const renderStopItem = useCallback(
     ({ item, index }) => (
       <MemoStopItem
@@ -319,8 +319,7 @@ const BusDetails = ({ route }) => {
     [currentStopIdx, routeData, blinkAnim, pulseAnim]
   );
 
-  // If routeData is not available or loading, show a loading indicator
-  // This prevents the app from crashing if routeData is null or undefined
+  // Loading state
   if (!routeData || loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -331,7 +330,6 @@ const BusDetails = ({ route }) => {
   }
 
   const computedSpeed = isOnline ? busInfo?.speed ?? 0 : 0.0;
-
   const status = !isOnline
     ? "Parked"
     : computedSpeed <= 2
@@ -340,38 +338,45 @@ const BusDetails = ({ route }) => {
 
   // Calculate distance between user and bus
   let userBusDistance = null;
-  if (busInfo?.lat && busInfo?.lng && userLocation) {
+  if (busInfo?.latitude && busInfo?.longitude && userLocation) {
     userBusDistance = calculateDistance(
-      busInfo.lat,
-      busInfo.lng,
-      userLocation.lat,
-      userLocation.lng
+      busInfo.latitude,
+      busInfo.longitude,
+      userLocation.latitude,
+      userLocation.longitude
     );
   }
 
-  // If userBusDistance is less than 30m, we consider the bus to be near the user
-  if (userBusDistance !== null && userBusDistance < 30) {
-    setNearestUserStop({
-      name: "You are near the bus",
-      lat: userLocation.lat,
-      lng: userLocation.lng,
-    });
-  } else if (nearestUserStop) {
-    setNearestUserStop({
-      name: nearestUserStop.name,
-      lat: nearestUserStop.lat,
-      lng: nearestUserStop.lng,
-    });
-  }
-  // Render the bus details screen
+  // Set nearest user stop
+  useEffect(() => {
+    if (userBusDistance !== null && userBusDistance < 30) {
+      setNearestUserStop({
+        name: "You are near the bus",
+        lat: userLocation.latitude,
+        lng: userLocation.longitude,
+      });
+    } else if (nearestUserStop) {
+      setNearestUserStop({
+        name: nearestUserStop.name,
+        lat: nearestUserStop.lat,
+        lng: nearestUserStop.lng,
+      });
+    }
+  }, [userBusDistance, userLocation]);
+
+  // Notifications
+  useArrivalNotification({
+    busInfo,
+    nearestUserStop,
+    notified,
+    setNotified,
+    calculateDistance,
+  });
+
   return (
-<<<<<<< HEAD
-    <View style={styles.container} edges={["top", "left", "right"]}>
-=======
-    <View style={styles.container}>
->>>>>>> 94f820d72ce582d368de01463ed3c39ba57fbc95
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{busInfo.busNumber}</Text>
+        <Text style={styles.headerTitle}>{busInfo?.busNumber || busID}</Text>
         <View style={styles.statusBadge}>
           <Text style={styles.statusText}>{status}</Text>
         </View>
@@ -422,13 +427,9 @@ const BusDetails = ({ route }) => {
               <Text style={styles.detailCardTitle}>Location Details</Text>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Speed:</Text>
-<<<<<<< HEAD
                 <Text style={styles.detailValue}>
                   {computedSpeed.toFixed(1)} km/h
                 </Text>
-=======
-                <Text style={styles.detailValue}>{displaySpeed}</Text>
->>>>>>> 94f820d72ce582d368de01463ed3c39ba57fbc95
               </View>
 
               <View style={styles.detailRow}>
@@ -440,16 +441,15 @@ const BusDetails = ({ route }) => {
                 <Text style={styles.detailValue}>
                   {userBusDistance !== null && userBusDistance < 30
                     ? (() => {
-                        // Calculate distance to next stop
                         if (
                           currentStopIdx + 1 < routeData.stops.length &&
-                          busInfo?.lat &&
-                          busInfo?.lng
+                          busInfo?.latitude &&
+                          busInfo?.longitude
                         ) {
                           const nextStop = routeData.stops[currentStopIdx + 1];
                           const dist = calculateDistance(
-                            busInfo.lat,
-                            busInfo.lng,
+                            busInfo.latitude,
+                            busInfo.longitude,
                             nextStop.lat,
                             nextStop.lng
                           );
@@ -466,10 +466,9 @@ const BusDetails = ({ route }) => {
           </View>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
-
 // styles
 const styles = StyleSheet.create({
   container: {
