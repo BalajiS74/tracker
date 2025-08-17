@@ -1,154 +1,203 @@
 {
-    "busID": "BUS789",
-    "routeName": "SCAD to Alangulam",
-    "stops": [
-        {
-            "name": "Alangulam New bus stand",
-            "lat": 8.8669003,
-            "lng": 77.4949725,
-            "km": 0,
-            "nextStop":"Alangulam Old Bus Stand"
-        },
-        {
-            "name": "Alangulam Old Bus Stand",
-            "lat": 8.8649193,
-            "lng": 77.5005147,
-            "m": 600,
-            "nextStop":"Nallur Villakku"
-        },
-        {
-            "name": "Nallur Villakku",
-            "lat": 8.8596431,
-            "lng": 77.5137975,
-            "km": 2.3,
-            "nextStop":"Maranthai"
-        },
-        {
-            "name": "Maranthai",
-            "lat": 8.8182097,
-            "lng": 77.5639769,
-            "km": 4.5,
-            "nextStop":"nalankurichi bus stop"
-        },
-        {
-            "name": "nalankurichi bus stop",
-            "lat": 8.8168514,
-            "lng": 77.5460379,
-            "nextStop":"Udayampuli old bus stand"
-        },
-        {
-            "name": "Udayampuli old bus stand",
-            "lat": 8.8011802,
-            "lng": 77.5447229,
-            "nextStop":"Udayampuli new bus stand"
-        },
-        {
-            "name": "Udayampuli new bus stand",
-            "lat": 8.80059,
-            "lng": 77.542693,
-            "nextStop":"kathapuram stop"
-        },
-        {
-            "name": "kathapuram stop",
-            "lat": 8.7941082,
-            "lng": 77.5330692,
-            "nextStop":"odaimarichan bus stop"
-        },
-        {
-            "name": "odaimarichan bus stop",
-            "lat": 8.7944059,
-            "lng": 77.5313206,
-            "nextStop":"Keela Elanthaikulam"
-        },
-        {
-            "name": "Keela Elanthaikulam",
-            "lat": 8.7714501,
-            "lng": 77.5502839,
-            "nextStop":"thalarkulam"
-        },
-        {
-            "name": "thalarkulam",
-            "lat": 8.7701172,
-            "lng": 77.5359661,
-            "nextStop":"singam paarai bulk stop"
-        },
-        {
-            "name": "singam paarai bulk stop",
-            "lat": 8.7490269,
-            "lng": 77.5256398,
-            "nextStop":"Vambalanthanmukku"
-        },
-        {
-            "name": "Vambalanthanmukku",
-            "lat": 8.750058,
-            "lng": 77.5322046,
-            "nextStop":"mukkudal health center"
-        },
-        {
-            "name": "mukkudal health center",
-            "lat": 8.7382676,
-            "lng": 77.5242669,
-            "nextStop":"Mukkudal Bus Stand"
-        },
-        {
-            "name": "Mukkudal Bus Stand",
-            "lat": 8.7367455,
-            "lng": 77.5223224,
-            "nextStop":"mukkudal bulk"
-        },
-        {
-            "name": "mukkudal bulk",
-            "lat": 8.7362383,
-            "lng": 77.5234735,
-            "nextStop":"mela ariyanayagi puram"
-        },
-        {
-            "name": "mela ariyanayagi puram",
-            "lat": 8.7229368,
-            "lng": 77.5428353,
-            "nextStop":"kela ariyanayagi puram"
-        },
-        {
-            "name": "kela ariyanayagi puram",
-            "lat": 8.7201261,
-            "lng": 77.5462748,
-            "nextStop":"Arasangulam bus stop"
-        },
-        {
-            "name": "Arasangulam bus stop",
-            "lat": 8.7153673,
-            "lng": 77.5548411,
-            "nextStop":"sangathiradu vilakku"
-        },
-        {
-            "name": "sangathiradu vilakku",
-            "lat": 8.7114159,
-            "lng": 77.5669859,
-            "nextStop":"Gandhi Park"
-        },
-        {
-            "name": "Gandhi Park",
-            "lat": 8.6876598,
-            "lng": 77.566306,
-            "nextStop":"Cheranmahadevi Roundtana"
-        },
-        {
-            "name": "Cheranmahadevi Roundtana",
-            "lat": 8.6747275,
-            "lng": 77.5649246,
-            "nextStop":"Scad Engineering college"
-        },
-        {
-            "name": "Scad Engineering college",
-            "lat": 8.6677244,
-            "lng": 77.5727186,
-            "nextStop":"cad polytechnic college"
-        },
-        {
-            "name": "scad polytechnic college",
-            "lat": 8.6635487,
-            "lng": 77.5673165,
-            "nextStop":"Bus reached"
-        }
-    ]
+  "busID": "BUS789",
+  "routeName": "SCAD to Alangulam",
+  "stops": [
+    {
+      "name": "Alangulam New bus stand",
+      "lat": 8.8669003,
+      "lng": 77.4949725,
+      "km": 0,
+      "nextStop": "Alangulam Old Bus Stand",
+      "to_next_distance_km": 0.648,
+      "cumulative_km_to_next": 0.648
+    },
+    {
+      "name": "Alangulam Old Bus Stand",
+      "lat": 8.8649193,
+      "lng": 77.5005147,
+      "m": 600,
+      "nextStop": "Nallur Villakku",
+      "to_next_distance_km": 1.573,
+      "cumulative_km_to_next": 2.22
+    },
+    {
+      "name": "Nallur Villakku",
+      "lat": 8.8596431,
+      "lng": 77.5137975,
+      "km": 2.3,
+      "nextStop": "Maranthai",
+      "to_next_distance_km": 7.185,
+      "cumulative_km_to_next": 9.405
+    },
+    {
+      "name": "Maranthai",
+      "lat": 8.8182097,
+      "lng": 77.5639769,
+      "km": 4.5,
+      "nextStop": "nalankurichi bus stop",
+      "to_next_distance_km": 1.977,
+      "cumulative_km_to_next": 11.382
+    },
+    {
+      "name": "nalankurichi bus stop",
+      "lat": 8.8168514,
+      "lng": 77.5460379,
+      "nextStop": "Udayampuli old bus stand",
+      "to_next_distance_km": 1.749,
+      "cumulative_km_to_next": 13.131
+    },
+    {
+      "name": "Udayampuli old bus stand",
+      "lat": 8.8011802,
+      "lng": 77.5447229,
+      "nextStop": "Udayampuli new bus stand",
+      "to_next_distance_km": 0.233,
+      "cumulative_km_to_next": 13.363
+    },
+    {
+      "name": "Udayampuli new bus stand",
+      "lat": 8.80059,
+      "lng": 77.542693,
+      "nextStop": "kathapuram stop",
+      "to_next_distance_km": 1.28,
+      "cumulative_km_to_next": 14.643
+    },
+    {
+      "name": "kathapuram stop",
+      "lat": 8.7941082,
+      "lng": 77.5330692,
+      "nextStop": "odaimarichan bus stop",
+      "to_next_distance_km": 0.195,
+      "cumulative_km_to_next": 14.838
+    },
+    {
+      "name": "odaimarichan bus stop",
+      "lat": 8.7944059,
+      "lng": 77.5313206,
+      "nextStop": "Keela Elanthaikulam",
+      "to_next_distance_km": 3.295,
+      "cumulative_km_to_next": 18.133
+    },
+    {
+      "name": "Keela Elanthaikulam",
+      "lat": 8.7714501,
+      "lng": 77.5502839,
+      "nextStop": "thalarkulam",
+      "to_next_distance_km": 1.58,
+      "cumulative_km_to_next": 19.714
+    },
+    {
+      "name": "thalarkulam",
+      "lat": 8.7701172,
+      "lng": 77.5359661,
+      "nextStop": "singam paarai bulk stop",
+      "to_next_distance_km": 2.605,
+      "cumulative_km_to_next": 22.319
+    },
+    {
+      "name": "singam paarai bulk stop",
+      "lat": 8.7490269,
+      "lng": 77.5256398,
+      "nextStop": "Vambalanthanmukku",
+      "to_next_distance_km": 0.731,
+      "cumulative_km_to_next": 23.05
+    },
+    {
+      "name": "Vambalanthanmukku",
+      "lat": 8.750058,
+      "lng": 77.5322046,
+      "nextStop": "mukkudal health center",
+      "to_next_distance_km": 1.575,
+      "cumulative_km_to_next": 24.624
+    },
+    {
+      "name": "mukkudal health center",
+      "lat": 8.7382676,
+      "lng": 77.5242669,
+      "nextStop": "Mukkudal Bus Stand",
+      "to_next_distance_km": 0.273,
+      "cumulative_km_to_next": 24.897
+    },
+    {
+      "name": "Mukkudal Bus Stand",
+      "lat": 8.7367455,
+      "lng": 77.5223224,
+      "nextStop": "mukkudal bulk",
+      "to_next_distance_km": 0.139,
+      "cumulative_km_to_next": 25.035
+    },
+    {
+      "name": "mukkudal bulk",
+      "lat": 8.7362383,
+      "lng": 77.5234735,
+      "nextStop": "mela ariyanayagi puram",
+      "to_next_distance_km": 2.592,
+      "cumulative_km_to_next": 27.627
+    },
+    {
+      "name": "mela ariyanayagi puram",
+      "lat": 8.7229368,
+      "lng": 77.5428353,
+      "nextStop": "kela ariyanayagi puram",
+      "to_next_distance_km": 0.49,
+      "cumulative_km_to_next": 28.117
+    },
+    {
+      "name": "kela ariyanayagi puram",
+      "lat": 8.7201261,
+      "lng": 77.5462748,
+      "nextStop": "Arasangulam bus stop",
+      "to_next_distance_km": 1.08,
+      "cumulative_km_to_next": 29.197
+    },
+    {
+      "name": "Arasangulam bus stop",
+      "lat": 8.7153673,
+      "lng": 77.5548411,
+      "nextStop": "sangathiradu vilakku",
+      "to_next_distance_km": 1.405,
+      "cumulative_km_to_next": 30.603
+    },
+    {
+      "name": "sangathiradu vilakku",
+      "lat": 8.7114159,
+      "lng": 77.5669859,
+      "nextStop": "Gandhi Park",
+      "to_next_distance_km": 2.643,
+      "cumulative_km_to_next": 33.245
+    },
+    {
+      "name": "Gandhi Park",
+      "lat": 8.6876598,
+      "lng": 77.566306,
+      "nextStop": "Cheranmahadevi Roundtana",
+      "to_next_distance_km": 1.446,
+      "cumulative_km_to_next": 34.691
+    },
+    {
+      "name": "Cheranmahadevi Roundtana",
+      "lat": 8.6747275,
+      "lng": 77.5649246,
+      "nextStop": "Scad Engineering college",
+      "to_next_distance_km": 1.158,
+      "cumulative_km_to_next": 35.849
+    },
+    {
+      "name": "Scad Engineering college",
+      "lat": 8.6677244,
+      "lng": 77.5727186,
+      "nextStop": "cad polytechnic college",
+      "to_next_distance_km": 0.754,
+      "cumulative_km_to_next": 36.603
+    },
+    {
+      "name": "scad polytechnic college",
+      "lat": 8.6635487,
+      "lng": 77.5673165,
+      "nextStop": "Bus reached",
+      "to_next_distance_km": 0,
+      "cumulative_km_to_next": 36.603
+    }
+  ],
+  "total_distance_km": 36.603
 }

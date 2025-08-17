@@ -1,155 +1,204 @@
 {
-    "busID": "BUS123",
-    "routeName": "SCAD to VK Puram",
-    "stops": [
-        {
-            "name": "Vk Puram",
-            "lat": 8.713928,
-            "lng": 77.3896484,
-            "isStartingPoint": true,
-            "m": 0,
-            "nextStop": "Vk Puram Theter"
-        },
-        {
-            "name": "Vk Puram Theter",
-            "lat": 8.712921,
-            "lng": 77.3939667,
-            "m": 690,
-            "nextStop": "Ambalavanapuram"
-        },
-        {
-            "name": "Ambalavanapuram",
-            "lat": 8.7113376,
-            "lng": 77.3998239,
-            "km": 1.5,
-            "nextStop": "Sivanthipuram"
-        },
-        {
-            "name": "Sivanthipuram",
-            "lat": 8.7101555,
-            "lng": 77.4067209,
-            "km": 2.5,
-            "nextStop": "Adayakarungulam"
-        },
-        {
-            "name": "Adayakarungulam",
-            "lat": 8.7093855,
-            "lng": 77.4143107,
-            "nextStop": "Agasthiyerpatti"
-        },
-        {
-            "name": "Agasthiyerpatti",
-            "lat": 8.7096449,
-            "lng": 77.4223991,
-            "nextStop": "Ambai Rs"
-        },
-        {
-            "name": "Ambai Rs",
-            "lat": 8.7066907,
-            "lng": 77.4375438,
-            "nextStop": "Rani School Ambai"
-        },
-        {
-            "name": "Rani School Ambai",
-            "lat": 8.705428,
-            "lng": 77.4417444,
-            "nextStop": "Kalyani Theatre"
-        },
-        {
-            "name": "Kalyani Theatre",
-            "lat": 8.7037727,
-            "lng": 77.4469314,
-            "nextStop": "Agasthiyar Kovil Bus Stop"
-        },
-        {
-            "name": "Agasthiyar Kovil Bus Stop",
-            "lat": 8.7038189,
-            "lng": 77.4509767,
-            "nextStop": "Ambasamudram Arch"
-        },
-        {
-            "name": "Ambasamudram Arch",
-            "lat": 8.703461,
-            "lng": 77.4588345,
-            "nextStop": "Kallidai Panchayathu"
-        },
-        {
-            "name": "Kallidai Panchayathu",
-            "lat": 8.6880013,
-            "lng": 77.4617222,
-            "nextStop": "Kallidaikurichi Rs"
-        },
-        {
-            "name": "Kallidaikuruchi Rs",
-            "lat": 8.681398,
-            "lng": 77.465235,
-            "nextStop": "Kallidai New Bus Stand"
-        },
-        {
-            "name": "Kallidai New Bus Stand",
-            "lat": 8.6800438,
-            "lng": 77.4703092,
-            "nextStop": "Kallidai Kottai Street"
-        },
-        {
-            "name": "Kallidai Kottai Street",
-            "lat": 8.6797395,
-            "lng": 77.4738484,
-            "nextStop": " Karambai Bus Stop"
-        },
-        {
-            "name": "Karambai Bus Stop",
-            "lat": 8.6782241,
-            "lng": 77.4823311,
-            "nextStop": "Vellanguli Bus Stop"
-        },
-        {
-            "name": "Vellanguli Bus Stop",
-            "lat": 8.6875788,
-            "lng": 77.4948794,
-            "nextStop": "Veeravanallur"
-        },
-        {
-            "name": "Veeravanallur",
-            "lat": 8.6873517,
-            "lng": 77.522615,
-            "nextStop": "Puthukudi Bus Stop"
-        },
-        {
-            "name": "Puthukudi Bus Stop",
-            "lat": 8.6792896,
-            "lng": 77.5378911,
-            "nextStop": "Karaikuruchi Bus Stop"
-        },
-        {
-            "name": "Karaikuruchi Bus Stop",
-            "lat": 8.680845,
-            "lng": 77.5427798,
-            "nextStop": "Kuniyur Bus Stop"
-        },
-        {
-            "name": "Kuniyur Bus Stop",
-            "lat": 8.6779525,
-            "lng": 77.552798,
-            "nextStop": "Rc Middle School Chearai"
-        },
-        {
-            "name": "Rc Middle School Chearai",
-            "lat": 8.6774363,
-            "lng": 77.5588154,
-            "nextStop": "Cheranmahadevi Roundtana"
-        },
-        {
-            "name": "Cheranmahadevi Roundtana",
-            "lat": 8.6751432,
-            "lng": 77.5648375,
-            "nextStop": "Scad Polytechnic College"
-        },
-        {
-            "name": "Scad Polytechnic College",
-            "lat": 8.6635226,
-            "lng": 77.5672354,
-            "nextStop": "bus reached"
-        }
-    ]
+  "busID": "BUS123",
+  "routeName": "SCAD to VK Puram",
+  "stops": [
+    {
+      "name": "Vk Puram",
+      "lat": 8.713928,
+      "lng": 77.3896484,
+      "isStartingPoint": true,
+      "m": 0,
+      "nextStop": "Vk Puram Theter",
+      "to_next_distance_km": 0.488,
+      "cumulative_km_to_next": 0.488
+    },
+    {
+      "name": "Vk Puram Theter",
+      "lat": 8.712921,
+      "lng": 77.3939667,
+      "m": 690,
+      "nextStop": "Ambalavanapuram",
+      "to_next_distance_km": 0.667,
+      "cumulative_km_to_next": 1.155
+    },
+    {
+      "name": "Ambalavanapuram",
+      "lat": 8.7113376,
+      "lng": 77.3998239,
+      "km": 1.5,
+      "nextStop": "Sivanthipuram",
+      "to_next_distance_km": 0.769,
+      "cumulative_km_to_next": 1.924
+    },
+    {
+      "name": "Sivanthipuram",
+      "lat": 8.7101555,
+      "lng": 77.4067209,
+      "km": 2.5,
+      "nextStop": "Adayakarungulam",
+      "to_next_distance_km": 0.839,
+      "cumulative_km_to_next": 2.763
+    },
+    {
+      "name": "Adayakarungulam",
+      "lat": 8.7093855,
+      "lng": 77.4143107,
+      "nextStop": "Agasthiyerpatti",
+      "to_next_distance_km": 0.889,
+      "cumulative_km_to_next": 3.653
+    },
+    {
+      "name": "Agasthiyerpatti",
+      "lat": 8.7096449,
+      "lng": 77.4223991,
+      "nextStop": "Ambai Rs",
+      "to_next_distance_km": 1.697,
+      "cumulative_km_to_next": 5.349
+    },
+    {
+      "name": "Ambai Rs",
+      "lat": 8.7066907,
+      "lng": 77.4375438,
+      "nextStop": "Rani School Ambai",
+      "to_next_distance_km": 0.483,
+      "cumulative_km_to_next": 5.832
+    },
+    {
+      "name": "Rani School Ambai",
+      "lat": 8.705428,
+      "lng": 77.4417444,
+      "nextStop": "Kalyani Theatre",
+      "to_next_distance_km": 0.599,
+      "cumulative_km_to_next": 6.431
+    },
+    {
+      "name": "Kalyani Theatre",
+      "lat": 8.7037727,
+      "lng": 77.4469314,
+      "nextStop": "Agasthiyar Kovil Bus Stop",
+      "to_next_distance_km": 0.445,
+      "cumulative_km_to_next": 6.876
+    },
+    {
+      "name": "Agasthiyar Kovil Bus Stop",
+      "lat": 8.7038189,
+      "lng": 77.4509767,
+      "nextStop": "Ambasamudram Arch",
+      "to_next_distance_km": 0.865,
+      "cumulative_km_to_next": 7.74
+    },
+    {
+      "name": "Ambasamudram Arch",
+      "lat": 8.703461,
+      "lng": 77.4588345,
+      "nextStop": "Kallidai Panchayathu",
+      "to_next_distance_km": 1.748,
+      "cumulative_km_to_next": 9.488
+    },
+    {
+      "name": "Kallidai Panchayathu",
+      "lat": 8.6880013,
+      "lng": 77.4617222,
+      "nextStop": "Kallidaikurichi Rs",
+      "to_next_distance_km": 0.83,
+      "cumulative_km_to_next": 10.318
+    },
+    {
+      "name": "Kallidaikuruchi Rs",
+      "lat": 8.681398,
+      "lng": 77.465235,
+      "nextStop": "Kallidai New Bus Stand",
+      "to_next_distance_km": 0.578,
+      "cumulative_km_to_next": 10.896
+    },
+    {
+      "name": "Kallidai New Bus Stand",
+      "lat": 8.6800438,
+      "lng": 77.4703092,
+      "nextStop": "Kallidai Kottai Street",
+      "to_next_distance_km": 0.391,
+      "cumulative_km_to_next": 11.286
+    },
+    {
+      "name": "Kallidai Kottai Street",
+      "lat": 8.6797395,
+      "lng": 77.4738484,
+      "nextStop": " Karambai Bus Stop",
+      "to_next_distance_km": 0.948,
+      "cumulative_km_to_next": 12.234
+    },
+    {
+      "name": "Karambai Bus Stop",
+      "lat": 8.6782241,
+      "lng": 77.4823311,
+      "nextStop": "Vellanguli Bus Stop",
+      "to_next_distance_km": 1.728,
+      "cumulative_km_to_next": 13.961
+    },
+    {
+      "name": "Vellanguli Bus Stop",
+      "lat": 8.6875788,
+      "lng": 77.4948794,
+      "nextStop": "Veeravanallur",
+      "to_next_distance_km": 3.049,
+      "cumulative_km_to_next": 17.01
+    },
+    {
+      "name": "Veeravanallur",
+      "lat": 8.6873517,
+      "lng": 77.522615,
+      "nextStop": "Puthukudi Bus Stop",
+      "to_next_distance_km": 1.903,
+      "cumulative_km_to_next": 18.913
+    },
+    {
+      "name": "Puthukudi Bus Stop",
+      "lat": 8.6792896,
+      "lng": 77.5378911,
+      "nextStop": "Karaikuruchi Bus Stop",
+      "to_next_distance_km": 0.565,
+      "cumulative_km_to_next": 19.478
+    },
+    {
+      "name": "Karaikuruchi Bus Stop",
+      "lat": 8.680845,
+      "lng": 77.5427798,
+      "nextStop": "Kuniyur Bus Stop",
+      "to_next_distance_km": 1.147,
+      "cumulative_km_to_next": 20.625
+    },
+    {
+      "name": "Kuniyur Bus Stop",
+      "lat": 8.6779525,
+      "lng": 77.552798,
+      "nextStop": "Rc Middle School Chearai",
+      "to_next_distance_km": 0.664,
+      "cumulative_km_to_next": 21.289
+    },
+    {
+      "name": "Rc Middle School Chearai",
+      "lat": 8.6774363,
+      "lng": 77.5588154,
+      "nextStop": "Cheranmahadevi Roundtana",
+      "to_next_distance_km": 0.709,
+      "cumulative_km_to_next": 21.999
+    },
+    {
+      "name": "Cheranmahadevi Roundtana",
+      "lat": 8.6751432,
+      "lng": 77.5648375,
+      "nextStop": "Scad Polytechnic College",
+      "to_next_distance_km": 1.319,
+      "cumulative_km_to_next": 23.317
+    },
+    {
+      "name": "Scad Polytechnic College",
+      "lat": 8.6635226,
+      "lng": 77.5672354,
+      "nextStop": "bus reached",
+      "to_next_distance_km": 0,
+      "cumulative_km_to_next": 23.317
+    }
+  ],
+  "total_distance_km": 23.317
 }

@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Route Distance Processor — Drag & Drop JSON</title>
+    <style>
+      :root {
+        --bg: #0f1724;
+        --card: #0b1220;
+        --accent: #06b6d4;
+        --muted: #9aa6b2;
+        --glass: rgba(255, 255, 255, 0.03);
+      }
+      * {
+        box-sizing: border-box;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI,
+          Roboto, "Helvetica Neue", Arial;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: linear-gradient(180deg, #071024 0%, #071430 60%);
+        color: #e6eef6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .wrap {
+        width: 100%;
+        max-width: 1000px;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0;
+      }
+      p.lead {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .card {
+        background: var(--card);
+        border-radius: 12px;
+        padding: 18px;
+        box-shadow: 0 6px 24px rgba(2, 6, 23, 0.6);
+      }
+
+      .drop {
+        border: 2px dashed rgba(255, 255, 255, 0.06);
+        padding: 28px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        flex-direction: column;
+        transition: all 0.15s;
+      }
+      .drop.dragover {
+        background: linear-gradient(
+          90deg,
+          rgba(6, 182, 212, 0.03),
+          transparent
+        );
+        border-color: rgba(6, 182, 212, 0.6);
+        box-shadow: 0 8px 30px rgba(6, 182, 212, 0.06);
+      }
+      .drop .hint {
+        font-size: 15px;
+        color: var(--muted);
+      }
+      .btn {
+        background: var(--accent);
+        color: #062029;
+        padding: 10px 14px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-top: 12px;
+      }
+
+      pre#output {
+        height: 280px;
+        overflow: auto;
+        background: var(--glass);
+        border-radius: 8px;
+        padding: 12px;
+        color: #d6f8fb;
+        font-size: 13px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 16px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th,
+      td {
+        padding: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        text-align: left;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .small {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      footer {
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 900px) {
+        .row {
+          grid-template-columns: 1fr;
+        }
+        .card {
+          padding: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div
+          style="
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent), #60a5fa);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+          "
+        >
+          RD
+        </div>
+        <div>
+          <h1>Route Distance Processor</h1>
+          <p class="lead">
+            Drag & drop a route JSON (stops with lat/lng). Script adds
+            <code>to_next_distance_km</code> and
+            <code>cumulative_km_to_next</code>.
+          </p>
+        </div>
+      </header>
+
+      <div class="card">
+        <div class="drop" id="dropzone">
+          <div style="width: 100%; max-width: 640px; text-align: center">
+            <p class="hint">
+              Drop a JSON file here (or click to pick). Expected format:
+              <code>{"stops":[{"name","lat","lng"}, ...]}</code>
+            </p>
+            <input
+              type="file"
+              id="fileInput"
+              accept="application/json"
+              style="display: none"
+            />
+            <div class="controls">
+              <button class="btn" id="pickBtn">Choose file</button>
+              <button class="btn" id="processBtn" style="background: #14b8a6">
+                Process & Download
+              </button>
+              <button class="btn" id="clearBtn" style="background: #334155">
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px" class="row">
+          <div>
+            <h3 style="margin: 6px 0">Preview / Output</h3>
+            <pre id="output">No file loaded yet.</pre>
+          </div>
+          <div>
+            <h3 style="margin: 6px 0">Summary</h3>
+            <table>
+              <tbody>
+                <tr>
+                  <th>Total stops</th>
+                  <td id="totalStops">—</td>
+                </tr>
+                <tr>
+                  <th>Total distance (km)</th>
+                  <td id="totalKm">—</td>
+                </tr>
+                <tr>
+                  <th>File name</th>
+                  <td id="fileName">—</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div style="margin-top: 12px">
+              <button class="btn" id="downloadJson">Download JSON</button>
+              <button class="btn" id="downloadCsv" style="background: #f59e0b">
+                Download CSV
+              </button>
+            </div>
+
+            <footer>
+              <p class="small">
+                Works offline in your browser. Distances use Haversine
+                (great-circle) and are approximate.
+              </p>
+            </footer>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Utility: Haversine (km)
+      function haversineKm(lat1, lon1, lat2, lon2) {
+        const toRad = (v) => (v * Math.PI) / 180;
+        const R = 6371.0; // km
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(toRad(lat1)) *
+            Math.cos(toRad(lat2)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+      }
+
+      // DOM
+      const drop = document.getElementById("dropzone");
+      const fileInput = document.getElementById("fileInput");
+      const pickBtn = document.getElementById("pickBtn");
+      const processBtn = document.getElementById("processBtn");
+      const clearBtn = document.getElementById("clearBtn");
+      const output = document.getElementById("output");
+      const totalStopsEl = document.getElementById("totalStops");
+      const totalKmEl = document.getElementById("totalKm");
+      const fileNameEl = document.getElementById("fileName");
+      const downloadJsonBtn = document.getElementById("downloadJson");
+      const downloadCsvBtn = document.getElementById("downloadCsv");
+
+      let lastData = null; // parsed route object
+      let lastFileName = "";
+
+      // Drag & drop handlers
+      ["dragenter", "dragover"].forEach((e) =>
+        drop.addEventListener(e, (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          drop.classList.add("dragover");
+        })
+      );
+      ["dragleave", "dropend", "mouseout", "dragleave"].forEach((e) =>
+        drop.addEventListener(e, (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          drop.classList.remove("dragover");
+        })
+      );
+
+      drop.addEventListener("drop", (ev) => {
+        ev.preventDefault();
+        drop.classList.remove("dragover");
+        const f = ev.dataTransfer.files && ev.dataTransfer.files[0];
+        if (f) handleFile(f);
+      });
+
+      pickBtn.addEventListener("click", () => fileInput.click());
+      fileInput.addEventListener("change", (e) => {
+        const f = e.target.files[0];
+        if (f) handleFile(f);
+      });
+
+      clearBtn.addEventListener("click", () => {
+        lastData = null;
+        lastFileName = "";
+        updateUI();
+        output.textContent = "Cleared.";
+      });
+
+      function handleFile(file) {
+        lastFileName = file.name;
+        fileNameEl.textContent = file.name;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const parsed = JSON.parse(reader.result);
+            lastData = parsed;
+            prettyPrint(parsed);
+            summarize(parsed);
+          } catch (err) {
+            output.textContent = "Error parsing JSON: " + err.message;
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      function prettyPrint(obj) {
+        output.textContent = JSON.stringify(obj, null, 2);
+      }
+
+      function summarize(route) {
+        const stops = route.stops || (route.route && route.route.stops) || [];
+        totalStopsEl.textContent = stops.length || 0;
+        totalKmEl.textContent = "—";
+      }
+
+      // Processing: enrich route with distances
+      function enrichRoute(route) {
+        if (!route || !Array.isArray(route.stops))
+          throw new Error("Invalid route JSON: expected { stops: [...] }");
+        const stops = route.stops;
+        let cumulative = 0;
+        for (let i = 0; i < stops.length; i++) {
+          const cur = stops[i];
+          const next = stops[i + 1];
+          if (
+            next &&
+            typeof cur.lat === "number" &&
+            typeof cur.lng === "number" &&
+            typeof next.lat === "number" &&
+            typeof next.lng === "number"
+          ) {
+            const d = haversineKm(cur.lat, cur.lng, next.lat, next.lng);
+            cumulative += d;
+            cur.to_next_distance_km = Number(d.toFixed(3));
+            cur.cumulative_km_to_next = Number(cumulative.toFixed(3));
+          } else {
+            cur.to_next_distance_km = 0;
+            cur.cumulative_km_to_next = Number(cumulative.toFixed(3));
+          }
+        }
+        route.total_distance_km = Number(cumulative.toFixed(3));
+        return route;
+      }
+
+      // Download helpers
+      function downloadObjectAsJson(obj, filename) {
+        const blob = new Blob([JSON.stringify(obj, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      function downloadCsvFromRoute(route, filename) {
+        const rows = [
+          [
+            "index",
+            "name",
+            "lat",
+            "lng",
+            "to_next_distance_km",
+            "cumulative_km_to_next",
+            "nextStop",
+          ],
+        ];
+        (route.stops || []).forEach((s, idx) => {
+          rows.push([
+            idx + 1,
+            '"' + (s.name || "") + '"',
+            s.lat || "",
+            s.lng || "",
+            s.to_next_distance_km || 0,
+            s.cumulative_km_to_next || 0,
+            '"' + (s.nextStop || "") + '"',
+          ]);
+        });
+        const csv = rows.map((r) => r.join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      processBtn.addEventListener("click", () => {
+        try {
+          if (!lastData)
+            return alert("No JSON loaded — drop or choose a file first.");
+          const enriched = enrichRoute(JSON.parse(JSON.stringify(lastData)));
+          lastData = enriched;
+          prettyPrint(enriched);
+          totalKmEl.textContent = enriched.total_distance_km + " km";
+          downloadObjectAsJson(
+            enriched,
+            (lastFileName || "route").replace(/\.json$/i, "") +
+              "_with_distances.json"
+          );
+        } catch (err) {
+          alert("Processing error: " + err.message);
+        }
+      });
+
+      downloadJsonBtn.addEventListener("click", () => {
+        if (!lastData) return alert("No data to download.");
+        downloadObjectAsJson(
+          lastData,
+          (lastFileName || "route").replace(/\.json$/i, "") +
+            "_with_distances.json"
+        );
+      });
+
+      downloadCsvBtn.addEventListener("click", () => {
+        if (!lastData) return alert("No data to download.");
+        downloadCsvFromRoute(
+          lastData,
+          (lastFileName || "route").replace(/\.json$/i, "") + "_stops.csv"
+        );
+      });
+
+      // Small UX: show sample JSON when empty (optional)
+      output.textContent = `Drop your route JSON here. Example minimal format:\n{\n  "busID": "BUS456",\n  "routeName": "SCAD to KTC Nagar",\n  "stops": [ {"name":"A","lat":8.66,"lng":77.56}, ... ]\n}`;
+    </script>
+  </body>
+</html>

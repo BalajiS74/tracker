@@ -78,6 +78,7 @@ const MemoStopItem = memo(
           <Text style={[styles.stopName, isCurrent && styles.activeStopName]}>
             {item.name}
           </Text>
+          <Text>{`Km:${item.cumulative_km_to_next}`}</Text>
         </View>
         {isCurrent && (
           <View style={styles.currentStopBadge}>
@@ -168,7 +169,7 @@ const BusDetails = ({ route }) => {
   const fetchCurrentLocation = useCallback(async () => {
     if (!routeData || !busID) return;
 
-    const firebaseURL =` https://bus-tracking-school-92dd9-default-rtdb.asia-southeast1.firebasedatabase.app/gps/${busID}.json`;
+    const firebaseURL = ` https://bus-tracking-school-92dd9-default-rtdb.asia-southeast1.firebasedatabase.app/gps/${busID}.json`;
 
     try {
       const response = await axios.get(firebaseURL);
@@ -181,7 +182,8 @@ const BusDetails = ({ route }) => {
       const isBusOnline = data?.status === true && isRecent;
 
       setBusOnlineStatus(isBusOnline);
-      if (!data?.latitude || !data?.longitude ||!isBusOnline) {
+      if (!data?.latitude || !data?.longitude||!isBusOnline) {
+        // ||!isBusOnline
         setCurrentStopIdx(-1);
         setLoading(false);
         return;
@@ -287,7 +289,7 @@ const BusDetails = ({ route }) => {
       const etaSec = speedMS > 0 ? dist / speedMS : null;
       if (etaSec) {
         setEtaToNextStop(
-         `${Math.floor(etaSec / 60)} min ${Math.floor(etaSec % 60)} sec`
+          `${Math.floor(etaSec / 60)} min ${Math.floor(etaSec % 60)} sec`
         );
         setCountdown(`${Math.max(0, Math.floor(etaSec))} sec`);
       } else {
@@ -317,7 +319,7 @@ const BusDetails = ({ route }) => {
       if (dist < 100) {
         Alert.alert(
           "Bus Alert",
-         ` Bus is arriving at your nearest stop: ${nearestUserStop.name}`
+          ` Bus is arriving at your nearest stop: ${nearestUserStop.name}`
         );
         setNotified(true);
       }
@@ -373,6 +375,54 @@ const BusDetails = ({ route }) => {
       userLocation.longitude
     );
   }
+  function reverseRouteWithDistances(stops) {
+    const reversed = [...stops].reverse();
+
+    let cumulative = 0;
+    const newStops = reversed.map((stop, idx) => {
+      let distanceToNext = 0;
+
+      if (idx < reversed.length - 1) {
+        distanceToNext = calculateDistance(
+          stop.lat,
+          stop.lng,
+          reversed[idx + 1].lat,
+          reversed[idx + 1].lng
+        );
+      }
+
+      cumulative += distanceToNext;
+
+      return {
+        ...stop,
+        cumulative_km_to_next: (cumulative / 1000).toFixed(2), // in km
+      };
+    });
+
+    return newStops;
+  }
+  function isEvening() {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+
+    // After 3:55 PM and before 5:00 AM next day → Evening/Return Route
+    if (hours > 15 || (hours === 15 && minutes >= 55)) {
+      return true;
+    }
+
+    // From midnight until 4:59 AM → still Evening/Return Route
+    if (hours < 5) {
+      return true;
+    }
+
+    // Otherwise → Morning/Forward Route
+    return false;
+  }
+
+  const processedStops = isEvening()
+    ? reverseRouteWithDistances(routeData.stops) // evening or before 5am
+    : routeData.stops; // morning 5am onwards
 
   return (
     <View style={styles.container} edges={["top", "left", "right"]}>
@@ -417,7 +467,7 @@ const BusDetails = ({ route }) => {
       <View style={styles.contentContainer}>
         {activeTab === "route" ? (
           <FlatList
-            data={routeData.stops}
+            data={processedStops}
             keyExtractor={(_, idx) => idx.toString()}
             renderItem={renderStopItem}
             contentContainerStyle={styles.listContainer}

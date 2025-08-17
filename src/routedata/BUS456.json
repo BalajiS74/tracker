@@ -1,90 +1,119 @@
 {
-    "busID": "BUS456",
-    "routeName": "SCAD to KTC Nagar",
-    "stops": [
-        {
-            "name": "SCAD Polytechnic College",
-            "lat": 8.6635526,
-            "lng": 77.5681187,
-            "nextStop": "SCAD Engineering College"
-        },
-        {
-            "name": "SCAD Engineering College ",
-            "lat": 8.6677165,
-            "lng": 77.5727654,
-            "nextStop": "SCAD International School"
-        },
-        {
-            "name": "SCAD International School",
-            "lat": 8.6696472,
-            "lng": 77.5750445,
-            "nextStop": "Pattamadai"
-        },
-        {
-            "name": "Pattamadai",
-            "lat": 8.6672293,
-            "lng": 77.5845415,
-            "nextStop": "Melaseval"
-        },
-        {
-            "name": "Melaseval",
-            "lat": 8.6605974,
-            "lng": 77.6163341,
-            "nextStop": "Tharuvai"
-        },
-        {
-            "name": "Tharuvai",
-            "lat": 8.6708323,
-            "lng": 77.6797828,
-            "nextStop": "Araikulam"
-        },
-        {
-            "name": "Araikulam",
-            "lat": 8.6791095,
-            "lng": 77.6950812,
-            "nextStop": "Melapalayam"
-        },
-        {
-            "name": "Melapalayam",
-            "lat": 8.6983862,
-            "lng": 77.7144346,
-            "nextStop": "Karungulam"
-        },
-        {
-            "name": "Karungulam",
-            "lat": 8.7016333,
-            "lng": 77.7188911,
-            "nextStop": "Tirunelveli New Bus Stand"
-        },
-        {
-            "name": "Tirunelveli New Bus Stand",
-            "lat": 8.7021043,
-            "lng": 77.7288644,
-            "nextStop": "Thiyagaraja Nagar"
-        },
-        {
-            "name": "Thiyagaraja Nagar",
-            "lat": 8.6963074,
-            "lng": 77.7548695,
-            "nextStop": "Srinivasagam Nagar"
-        },
-        {
-            "name": "Srinivasagam Nagar",
-            "lat": 8.7107259,
-            "lng": 77.7652956,
-            "nextStop": "KTC Nagar"
-        },
-        {
-            "name": "KTC Nagar",
-            "lat": 8.7206939,
-            "lng": 77.7734659,
-            "nextStop": "Saradha College"
-        },
-        {
-            "name": "Saradha College",
-            "lat": 8.7157675,
-            "lng": 77.792717,
-            "nextStop": "bus reached"
-        }
-    ]
+  "busID": "BUS456",
+  "routeName": "SCAD to KTC Nagar",
+  "stops": [
+    {
+      "name": "SCAD Polytechnic College",
+      "lat": 8.6635526,
+      "lng": 77.5681187,
+      "nextStop": "SCAD Engineering College",
+      "to_next_distance_km": 0.689,
+      "cumulative_km_to_next": 0.689
+    },
+    {
+      "name": "SCAD Engineering College ",
+      "lat": 8.6677165,
+      "lng": 77.5727654,
+      "nextStop": "SCAD International School",
+      "to_next_distance_km": 0.33,
+      "cumulative_km_to_next": 1.019
+    },
+    {
+      "name": "SCAD International School",
+      "lat": 8.6696472,
+      "lng": 77.5750445,
+      "nextStop": "Pattamadai",
+      "to_next_distance_km": 1.078,
+      "cumulative_km_to_next": 2.097
+    },
+    {
+      "name": "Pattamadai",
+      "lat": 8.6672293,
+      "lng": 77.5845415,
+      "nextStop": "Melaseval",
+      "to_next_distance_km": 3.572,
+      "cumulative_km_to_next": 5.669
+    },
+    {
+      "name": "Melaseval",
+      "lat": 8.6605974,
+      "lng": 77.6163341,
+      "nextStop": "Tharuvai",
+      "to_next_distance_km": 7.067,
+      "cumulative_km_to_next": 12.736
+    },
+    {
+      "name": "Tharuvai",
+      "lat": 8.6708323,
+      "lng": 77.6797828,
+      "nextStop": "Araikulam",
+      "to_next_distance_km": 1.917,
+      "cumulative_km_to_next": 14.653
+    },
+    {
+      "name": "Araikulam",
+      "lat": 8.6791095,
+      "lng": 77.6950812,
+      "nextStop": "Melapalayam",
+      "to_next_distance_km": 3.02,
+      "cumulative_km_to_next": 17.673
+    },
+    {
+      "name": "Melapalayam",
+      "lat": 8.6983862,
+      "lng": 77.7144346,
+      "nextStop": "Karungulam",
+      "to_next_distance_km": 0.609,
+      "cumulative_km_to_next": 18.282
+    },
+    {
+      "name": "Karungulam",
+      "lat": 8.7016333,
+      "lng": 77.7188911,
+      "nextStop": "Tirunelveli New Bus Stand",
+      "to_next_distance_km": 1.097,
+      "cumulative_km_to_next": 19.379
+    },
+    {
+      "name": "Tirunelveli New Bus Stand",
+      "lat": 8.7021043,
+      "lng": 77.7288644,
+      "nextStop": "Thiyagaraja Nagar",
+      "to_next_distance_km": 2.93,
+      "cumulative_km_to_next": 22.309
+    },
+    {
+      "name": "Thiyagaraja Nagar",
+      "lat": 8.6963074,
+      "lng": 77.7548695,
+      "nextStop": "Srinivasagam Nagar",
+      "to_next_distance_km": 1.971,
+      "cumulative_km_to_next": 24.28
+    },
+    {
+      "name": "Srinivasagam Nagar",
+      "lat": 8.7107259,
+      "lng": 77.7652956,
+      "nextStop": "KTC Nagar",
+      "to_next_distance_km": 1.427,
+      "cumulative_km_to_next": 25.706
+    },
+    {
+      "name": "KTC Nagar",
+      "lat": 8.7206939,
+      "lng": 77.7734659,
+      "nextStop": "Saradha College",
+      "to_next_distance_km": 2.186,
+      "cumulative_km_to_next": 27.892
+    },
+    {
+      "name": "Saradha College",
+      "lat": 8.7157675,
+      "lng": 77.792717,
+      "nextStop": "bus reached",
+      "to_next_distance_km": 0,
+      "cumulative_km_to_next": 27.892
+    }
+  ],
+  "total_distance_km": 27.892
 }

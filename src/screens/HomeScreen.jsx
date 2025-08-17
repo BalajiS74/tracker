@@ -131,7 +131,7 @@ export default function HomeScreen({ navigation }) {
     }
   }, []);
 
-  // 
+  //
   useEffect(() => {
     fetchBusData();
     const interval = setInterval(fetchBusData, 30000);
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: hp("3%"),
     right: wp("5%"),
-    backgroundColor: "#ff3b30", 
+    backgroundColor: "#ff3b30",
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: hp("1.5%"),
