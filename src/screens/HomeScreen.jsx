@@ -1,5 +1,4 @@
-// HomeScreen.js
-import React, {
+import {
   useContext,
   useEffect,
   useState,
@@ -17,6 +16,9 @@ import {
   RefreshControl,
   FlatList,
   AppState,
+  Animated,
+  Easing,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -29,26 +31,59 @@ import {
   handleShareLiveLocation,
   handleEmergency,
 } from "../services/userLocation.js";
-const BusCard = memo(({ route, nextStop, time, onPress }) => (
-  <TouchableOpacity style={styles.busCard} onPress={onPress}>
-    <View style={styles.busCardIconContainer}>
-      <Ionicons name="bus" size={wp("6%")} color="#4b0082" />
-    </View>
-    <View style={styles.busCardDetails}>
-      <Text style={styles.busCardRoute}>{route}</Text>
-      <Text style={styles.busCardStop}>Next: {nextStop}</Text>
-    </View>
-    <View style={styles.busCardTimeContainer}>
-      <Text style={styles.busCardTime}>{time}</Text>
-      <Ionicons name="chevron-forward" size={wp("4%")} color="#999" />
-    </View>
-  </TouchableOpacity>
-));
+
+const { width } = Dimensions.get('window');
+
+const BusCard = memo(({ route, nextStop, time, onPress }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      easing: Easing.out(Easing.exp),
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim }}>
+      <TouchableOpacity style={styles.busCard} onPress={onPress} activeOpacity={0.8}>
+        <View style={styles.busCardIconContainer}>
+          <Ionicons name="bus" size={wp("6%")} color="#fff" />
+        </View>
+        <View style={styles.busCardDetails}>
+          <Text style={styles.busCardRoute}>{route}</Text>
+          <Text style={styles.busCardStop}>Next: {nextStop}</Text>
+        </View>
+        <View style={styles.busCardTimeContainer}>
+          <Text style={styles.busCardTime}>{time}</Text>
+          <Ionicons name="chevron-forward" size={wp("4%")} color="#999" />
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+});
 
 const EmergencyButton = ({ onPress }) => (
-  <TouchableOpacity style={styles.emergencyButton} onPress={onPress}>
-    <Ionicons name="alert-circle" size={wp("7%")} color="#fff" />
-    <Text style={styles.emergencyButtonText}>Emergency</Text>
+  <TouchableOpacity style={styles.emergencyButton} onPress={onPress} activeOpacity={0.9}>
+    <View style={styles.emergencyButtonInner}>
+      <Ionicons name="alert-circle" size={wp("6%")} color="#fff" />
+      <Text style={styles.emergencyButtonText}>Emergency</Text>
+    </View>
+  </TouchableOpacity>
+);
+
+const SafetyButton = ({ icon, text, onPress, color }) => (
+  <TouchableOpacity
+    style={[styles.safetyButton, { backgroundColor: color }]}
+    onPress={onPress}
+    activeOpacity={0.8}
+  >
+    <View style={styles.safetyButtonIcon}>
+      <Ionicons name={icon} size={wp("6.5%")} color="#fff" />
+    </View>
+    <Text style={styles.safetyButtonText}>{text}</Text>
   </TouchableOpacity>
 );
 
@@ -58,6 +93,19 @@ export default function HomeScreen({ navigation }) {
   const [emergencyMode, setEmergencyMode] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const appState = useRef(AppState.currentState);
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, -50],
+    extrapolate: "clamp",
+  });
 
   const getRouteData = (busID) => {
     const files = {
@@ -118,11 +166,6 @@ export default function HomeScreen({ navigation }) {
           nextStop,
           time: busData?.updatedTime || "Just now",
         });
-
-        // Optional: Alert if bus is near a stop
-        if (minDist < 100) {
-          Alert.alert(`Bus ${busID}`, `Approaching: ${nextStop}`);
-        }
       });
 
       setBusList(stats);
@@ -131,14 +174,12 @@ export default function HomeScreen({ navigation }) {
     }
   }, []);
 
-  //
   useEffect(() => {
     fetchBusData();
     const interval = setInterval(fetchBusData, 30000);
     return () => clearInterval(interval);
   }, [fetchBusData]);
 
-  //
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       if (
@@ -155,102 +196,124 @@ export default function HomeScreen({ navigation }) {
     };
   }, []);
 
-  useEffect(() => {
-    fetchBusData();
-    const interval = setInterval(fetchBusData, 30000);
-    return () => clearInterval(interval);
-  }, [fetchBusData]);
-
   const handleBusPress = useCallback(
     (busID) => navigation.navigate("BusDetails", { busID }),
     [navigation]
   );
 
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchBusData().then(() => setRefreshing(false));
+  }, []);
+
   // Combine all header content into a header component
   const renderHeader = () => (
-    <>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Campus Transit</Text>
-      </View>
+    <View>
       {/* Welcome Card */}
       <View style={styles.welcomeCard}>
-        <View>
+        <View style={styles.welcomeTextContainer}>
           <Text style={styles.welcomeText}>Welcome back,</Text>
           <Text style={styles.userName}>{user?.name || "Guest"}</Text>
         </View>
-        <View style={styles.notificationBadge}>
-          <Ionicons name="notifications" size={wp("5%")} color="#fff" />
-        </View>
+        <TouchableOpacity style={styles.notificationBadge} activeOpacity={0.7}>
+          <Ionicons
+            name="notifications-outline"
+            size={wp("5.5%")}
+            color="#6C63FF"
+          />
+          <View style={styles.notificationDot}></View>
+        </TouchableOpacity>
       </View>
+
       {/* Safety Buttons */}
       <View style={styles.safetySection}>
         <Text style={styles.sectionTitle}>Safety Features</Text>
         <View style={styles.safetyButtons}>
-          <TouchableOpacity
-            style={styles.safetyButton}
+          <SafetyButton
+            icon="alert-circle"
+            text="Emergency"
             onPress={() => handleEmergency(setEmergencyMode)}
-          >
-            <Ionicons name="alert-circle" size={wp("6%")} color="#ff4444" />
-            <Text style={styles.safetyButtonText}>Emergency</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.safetyButton}
+            color="#FF6B6B"
+          />
+          <SafetyButton
+            icon="location"
+            text="Share Location"
             onPress={() => handleShareLiveLocation(user)}
-          >
-            <Ionicons name="location" size={wp("6%")} color="#4b0082" />
-            <Text style={styles.safetyButtonText}>Share Location</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.safetyButton}
+            color="#6C63FF"
+          />
+          <SafetyButton
+            icon="shield-checkmark"
+            text="Safety Tips"
             onPress={() => navigation.navigate("Safetytips")}
-          >
-            <Ionicons name="shield-checkmark" size={wp("6%")} color="#4b0082" />
-            <Text style={styles.safetyButtonText}>Safety Tips</Text>
-          </TouchableOpacity>
+            color="#4ECDC4"
+          />
         </View>
       </View>
+
       {/* Promo */}
-      <TouchableOpacity style={styles.promoBanner}>
+      <TouchableOpacity style={styles.promoBanner} activeOpacity={0.9}>
         <Image
           source={require("../images/scadpoly.jpg")}
           style={styles.promoImage}
           resizeMode="cover"
         />
-
-        <View style={styles.promoOverlay}>
+        <View style={styles.promoOverlay} />
+        <View style={styles.promoContent}>
           <Text style={styles.promoTitle}>Never Miss Your Bus!</Text>
           <Text style={styles.promoSubtitle}>
             Real-time tracking for all routes
           </Text>
+          <View style={styles.promoButton}>
+            <Text style={styles.promoButtonText}>Track Now</Text>
+            <Ionicons name="arrow-forward" size={wp("4%")} color="#6C63FF" />
+          </View>
         </View>
       </TouchableOpacity>
+
       {/* Recent Search Section Header */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.searchTitle}>Recent Search</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("Track")}>
+        <Text style={styles.searchTitle}>Available Buses</Text>
+        <TouchableOpacity
+          style={styles.seeAllButton}
+          onPress={() => navigation.navigate("Track")}
+          activeOpacity={0.7}
+        >
           <Text style={styles.seeAllText}>See All</Text>
+          <Ionicons name="chevron-forward" size={wp("3.5%")} color="#6C63FF" />
         </TouchableOpacity>
       </View>
-    </>
+    </View>
   );
 
   return (
     <SafeAreaView
       edges={["top"]}
-      style={[
-        styles.container,
-        emergencyMode && styles.emergencyMode,
-        { backgroundColor: "transparent" },
-      ]}
+      style={[styles.container, emergencyMode && styles.emergencyMode]}
     >
       <StatusBar
         barStyle={emergencyMode ? "light-content" : "dark-content"}
-        backgroundColor={emergencyMode ? "#ff4444" : "transparent"}
+        backgroundColor={emergencyMode ? "#ff4444" : "#6C63FF"}
         translucent
       />
 
-      <FlatList
+      {/* Animated Header */}
+      <Animated.View
+        style={[
+          styles.header,
+          {
+            opacity: headerOpacity,
+            transform: [{ translateY: headerTranslateY }],
+          },
+        ]}
+      >
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.collegeName}></Text>
+          <Text style={styles.title}>SCAD Polytechnic College</Text>
+        </View>
+        
+      </Animated.View>
+
+      <Animated.FlatList
         data={busList}
         keyExtractor={(bus) => bus.id}
         renderItem={({ item }) => (
@@ -263,34 +326,38 @@ export default function HomeScreen({ navigation }) {
         )}
         ListHeaderComponent={renderHeader}
         ListFooterComponent={
-          <View
-            style={[
-              styles.alertBox,
-              {
-                backgroundColor: "#fff3cd",
-                borderLeftColor: "#ffa500",
-                borderLeftWidth: 5,
-              },
-            ]}
-          >
+          <View style={styles.alertBox}>
+            <Ionicons name="warning" size={wp("5%")} color="#FFA500" />
             <Text style={styles.alertText}>
-              ⚠️ <Text style={{ fontWeight: "bold" }}>Warning:</Text> Tapping
-              the <Text style={{ fontWeight: "bold" }}>Share Location</Text>{" "}
-              button will instantly notify your{" "}
-              <Text style={{ fontWeight: "bold" }}>parents</Text>,{" "}
-              <Text style={{ fontWeight: "bold" }}>AO</Text>, and{" "}
-              <Text style={{ fontWeight: "bold" }}>staffs</Text> with your live
-              location.
+              Tapping <Text style={styles.alertBold}>Share Location</Text> will
+              instantly notify your contacts with your live location.
             </Text>
           </View>
         }
         ListEmptyComponent={
-          <Text style={styles.noBusText}>No bus data available.</Text>
+          <View style={styles.emptyState}>
+            <Ionicons name="bus-outline" size={wp("20%")} color="#E5E5E5" />
+            <Text style={styles.emptyStateText}>No buses available</Text>
+            <Text style={styles.emptyStateSubtext}>
+              Check back later or refresh to see active routes
+            </Text>
+          </View>
         }
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={fetchBusData} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#6C63FF"]}
+            tintColor="#6C63FF"
+          />
         }
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
       />
 
       {!emergencyMode && (
@@ -303,198 +370,239 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  emergencyMode: {},
-  scrollContent: {
-    paddingBottom: hp("1%"),
+    backgroundColor: "#F8FAFC",
   },
   header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: wp("6%"),
-    paddingTop: hp("2%"),
+    paddingHorizontal: wp("5%"),
+    paddingTop: hp("5%"),
+    paddingBottom: hp("2%"),
+    backgroundColor: "#6C63FF",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   title: {
-    fontSize: wp("7%"),
-    fontWeight: "800",
-    color: "#4b0082",
+    fontSize: wp("5.5%"),
+    fontWeight: "700",
+    color: "#fff",
+    textAlign:"center"
   },
-  profileImage: {
-    width: wp("15%"),
-    height: wp("15%"),
-    borderRadius: wp("10%"),
-    borderWidth: 2,
-    borderColor: "#4b0082",
-    marginRight: wp("2%"),
+  headerTextContainer: {
+    flex: 1,
+    flexDirection: "column",
+    gap: 5,
+  },
+  collegeName: {
+    fontSize: wp("4%"),
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.8)",
+  },
+  scrollContent: {
+    paddingTop: hp("15%"),
+    paddingBottom: hp("2%"),
+    paddingHorizontal: wp("4%"),
   },
   welcomeCard: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: wp("4%"),
-    marginHorizontal: wp("6%"),
-    marginVertical: hp("2%"),
-    padding: wp("6%"),
-    shadowColor: "#000",
+    borderRadius: 16,
+    padding: wp("5%"),
+    marginBottom: hp("2%"),
+    shadowColor: "#6C63FF",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  welcomeTextContainer: {
+    flex: 1,
   },
   welcomeText: {
     fontSize: wp("4%"),
-    color: "#666",
+    color: "#64748B",
+    marginBottom: 4,
   },
   userName: {
-    fontSize: wp("6%"),
+    fontSize: wp("5%"),
     fontWeight: "700",
-    color: "#333",
-    marginTop: hp("0.5%"),
+    color: "#1E293B",
   },
   notificationBadge: {
-    backgroundColor: "#4b0082",
-    width: wp("10%"),
-    height: wp("10%"),
-    borderRadius: wp("5%"),
+    width: wp("12%"),
+    height: wp("12%"),
+    borderRadius: wp("6%"),
+    backgroundColor: "#F1F5F9",
     justifyContent: "center",
     alignItems: "center",
+    position: "relative",
+  },
+  notificationDot: {
+    position: "absolute",
+    top: wp("2.5%"),
+    right: wp("2.5%"),
+    width: wp("2.5%"),
+    height: wp("2.5%"),
+    borderRadius: wp("1.25%"),
+    backgroundColor: "#FF6B6B",
   },
   safetySection: {
-    paddingHorizontal: wp("6%"),
     marginBottom: hp("2%"),
+  },
+  sectionTitle: {
+    fontSize: wp("4.5%"),
+    fontWeight: "600",
+    color: "#1E293B",
+    marginBottom: hp("1.5%"),
   },
   safetyButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: hp("1%"),
-    gap: 4,
+    gap: wp("2%"),
   },
   safetyButton: {
-    backgroundColor: "#fff",
-    borderRadius: wp("3%"),
-    padding: wp("2%"),
+    flex: 1,
+    borderRadius: 16,
+    paddingVertical: hp("2%"),
+    paddingHorizontal: wp("2%"),
     alignItems: "center",
-    width: wp("30%"),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
+  safetyButtonIcon: {
+    width: wp("12%"),
+    height: wp("12%"),
+    borderRadius: wp("6%"),
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: hp("1%"),
+  },
   safetyButtonText: {
-    fontSize: wp("3.5%"),
-    color: "#333",
-    marginTop: hp("0.5%"),
-    fontWeight: "500",
-    padding: 5,
+    color: "#fff",
+    fontSize: wp("3.2%"),
+    fontWeight: "600",
+    textAlign: "center",
   },
   promoBanner: {
-    height: hp("25%"),
-    borderRadius: wp("4%"),
-    marginHorizontal: wp("6%"),
-    marginBottom: hp("2%"),
+    height: hp("30%"),
+    borderRadius: 16,
     overflow: "hidden",
+    marginBottom: hp("2%"),
+    position: "relative",
   },
   promoImage: {
     width: "100%",
     height: "100%",
   },
-  promoOverlay: {
+ 
+  promoContent: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
+    backgroundColor: "rgba(64, 155, 74, 0.2)",
     padding: wp("5%"),
-    backgroundColor: "rgba(0, 130, 104, 0.8)",
   },
   promoTitle: {
     fontSize: wp("5%"),
     fontWeight: "700",
     color: "#fff",
-    marginBottom: hp("0.5%"),
+    marginBottom: 4,
   },
   promoSubtitle: {
-    fontSize: wp("3.5%"),
+    fontSize: wp("3.8%"),
     color: "rgba(255,255,255,0.8)",
+    marginBottom: hp("1.5%"),
   },
-  section: {
-    paddingHorizontal: wp("6%"),
-    marginBottom: hp("2%"),
+  promoButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "#fff",
+    paddingVertical: hp("1%"),
+    paddingHorizontal: wp("4%"),
+    borderRadius: 20,
+  },
+  promoButtonText: {
+    color: "#6C63FF",
+    fontSize: wp("3.8%"),
+    fontWeight: "600",
+    marginRight: wp("1%"),
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: hp("2%"),
-    marginHorizontal: wp("6%"),
-    paddingHorizontal: wp("4%"),
-  },
-  sectionTitle: {
-    fontSize: wp("5%"),
-    fontWeight: "700",
-    color: "#333",
-    padding: 5,
+    marginBottom: hp("1.5%"),
   },
   searchTitle: {
-    fontSize: wp("5%"),
-    fontWeight: "700",
-    color: "#333",
-    width: wp("40%"),
-    padding: 5,
+    fontSize: wp("4.5%"),
+    fontWeight: "600",
+    color: "#1E293B",
+  },
+  seeAllButton: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   seeAllText: {
-    fontSize: wp("4%"),
-    color: "#4b0082",
+    color: "#6C63FF",
+    fontSize: wp("3.8%"),
     fontWeight: "500",
+    marginRight: 4,
   },
   busCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: wp("3%"),
-    padding: wp("2%"),
+    borderRadius: 16,
+    padding: wp("4%"),
     marginBottom: hp("1.5%"),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    marginHorizontal: wp("6%"),
-    borderLeftWidth: 5,
-    borderLeftColor: "#4b0082",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    borderLeftWidth: 4,
+    borderLeftColor: "#6C63FF",
   },
   busCardIconContainer: {
     width: wp("12%"),
     height: wp("12%"),
     borderRadius: wp("6%"),
-    backgroundColor: "rgba(75, 0, 130, 0.1)",
+    backgroundColor: "#6C63FF",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: wp("4%"),
+    marginRight: wp("3%"),
   },
   busCardDetails: {
     flex: 1,
-    alignItems: "flex-start",
-    justifyContent: "center",
   },
   busCardRoute: {
     fontSize: wp("4.2%"),
     fontWeight: "600",
-    color: "#333",
-    paddingTop: 2,
-    paddingBottom: 2,
-    paddingLeft: 5,
-    paddingRight: 5,
+    color: "#1E293B",
+    marginBottom: 4,
   },
   busCardStop: {
     fontSize: wp("3.5%"),
-    color: "#666",
-    padding: 5,
+    color: "#64748B",
   },
   busCardTimeContainer: {
     flexDirection: "row",
@@ -502,47 +610,72 @@ const styles = StyleSheet.create({
   },
   busCardTime: {
     fontSize: wp("3.5%"),
-    color: "#4b0082",
-    fontWeight: "600",
-    marginRight: wp("2%"),
+    color: "#64748B",
+    marginRight: wp("1%"),
+  },
+  alertBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFBEB",
+    borderRadius: 12,
+    padding: wp("4%"),
+    marginTop: hp("2%"),
+    marginBottom: hp("10%"),
+    borderWidth: 1,
+    borderColor: "#FEF3C7",
+  },
+  alertText: {
+    flex: 1,
+    fontSize: wp("3.5%"),
+    color: "#92400E",
+    marginLeft: wp("2%"),
+  },
+  alertBold: {
+    fontWeight: "700",
   },
   emergencyButton: {
     position: "absolute",
     bottom: hp("3%"),
     right: wp("5%"),
-    backgroundColor: "#ff3b30",
-    flexDirection: "row",
-    alignItems: "center",
+    backgroundColor: "#DC2626",
+    borderRadius: 30,
     paddingVertical: hp("1.5%"),
-    paddingHorizontal: wp("5%"),
-    borderRadius: wp("10%"),
+    paddingHorizontal: wp("4%"),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
-    zIndex: 10,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  emergencyButtonInner: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   emergencyButtonText: {
     color: "#fff",
-    fontSize: wp("4.2%"),
+    fontSize: wp("4%"),
     fontWeight: "600",
     marginLeft: wp("2%"),
-    marginBottom: 3,
-    padding: 5,
   },
-
-  noBusText: {
-    color: "#888",
-    fontStyle: "italic",
-    padding: 10,
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: hp("10%"),
+  },
+  emptyStateText: {
+    fontSize: wp("4.5%"),
+    fontWeight: "600",
+    color: "#94A3B8",
+    marginTop: hp("2%"),
+  },
+  emptyStateSubtext: {
+    fontSize: wp("3.8%"),
+    color: "#CBD5E1",
     textAlign: "center",
+    marginTop: hp("1%"),
+    paddingHorizontal: wp("10%"),
   },
-  alertBox: {
-    paddingHorizontal: wp("6%"),
-    marginBottom: hp("10%"),
-    borderRadius: wp("3%"),
-    marginHorizontal: wp("6%"),
-    paddingVertical: hp("2%"),
+  emergencyMode: {
+    backgroundColor: "#ff4444",
   },
 });

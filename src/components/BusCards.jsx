@@ -55,7 +55,7 @@ export default function BusCard({ bus = {}, onPress }) {
                   ? "gray"
                   : isOnline
                   ? "limegreen"
-                  : "tomato",
+                  : "tomato", 
               },
             ]}
           />

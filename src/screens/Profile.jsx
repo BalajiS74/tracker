@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useCallback,
   memo,
+  useMemo,
 } from "react";
 import {
   View,
@@ -14,6 +15,7 @@ import {
   Alert,
   Dimensions,
   SafeAreaView,
+  ScrollView,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -23,45 +25,77 @@ import * as ImagePicker from "expo-image-picker";
 import DefaultProfileImage from "../images/default-profile-image.png";
 
 const API_BASE_URL = "https://trakerbackend.onrender.com";
+const ALLOWED_IMAGE_TYPES = ["jpg", "jpeg", "png"];
 
-const MenuItem = memo(({ icon, text, onPress }) => (
-  <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-    <Ionicons name={icon} size={24} color="#4b0082" />
-    <Text style={[styles.menuText, { marginLeft: 16 }]}>{text}</Text>
+// Initial dimensions calculations
+const windowDimensions = Dimensions.get("window");
+const wp = (percent) => windowDimensions.width * (percent / 100);
+const hp = (percent) => windowDimensions.height * (percent / 100);
+
+// MenuItem Component
+const MenuItem = memo(({ icon, text, onPress, isLast }) => (
+  <TouchableOpacity
+    style={[styles.menuItem, isLast && styles.menuItemLast]}
+    onPress={onPress}
+    accessible={true}
+    accessibilityLabel={text}
+    accessibilityRole="button"
+  >
+    <View style={styles.menuIconContainer}>
+      <Ionicons name={icon} size={24} color="#6C63FF" />
+    </View>
+    <Text style={styles.menuText}>{text}</Text>
     <Ionicons name="chevron-forward" size={20} color="#ccc" />
   </TouchableOpacity>
 ));
 
 const Profile = () => {
-  const { user, logout } = useContext(AuthContext);
+  const { user, userToken, refreshUser, logout } = useContext(AuthContext);
   const navigation = useNavigation();
   const [avatarUri, setAvatarUri] = useState(null);
-  const [windowDimensions, setWindowDimensions] = useState(
-    Dimensions.get("window")
-  );
+  const [isUploading, setIsUploading] = useState(false);
+  const [currentDimensions, setCurrentDimensions] = useState(windowDimensions);
 
-  const wp = (p) => windowDimensions.width * (p / 100);
-  const hp = (p) => windowDimensions.height * (p / 100);
+  // Responsive functions
+  const { wp: currentWp, hp: currentHp } = useMemo(
+    () => ({
+      wp: (percent) => currentDimensions.width * (percent / 100),
+      hp: (percent) => currentDimensions.height * (percent / 100),
+    }),
+    [currentDimensions]
+  );
 
   useEffect(() => {
     const loadAvatar = async () => {
-      const saved = await AsyncStorage.getItem("profilePhoto");
-      if (saved) {
-        setAvatarUri(saved);
-      } else if (user?.avatar) {
-        const fullUrl = `${API_BASE_URL}${user.avatar}`;
-        setAvatarUri(fullUrl);
-        await AsyncStorage.setItem("profilePhoto", fullUrl);
+      try {
+        const saved = await AsyncStorage.getItem("profilePhoto");
+        if (saved) {
+          setAvatarUri(saved);
+        } else if (user?.avatar) {
+          const fullUrl = `${API_BASE_URL}${user.avatar}?${Date.now()}`;
+          setAvatarUri(fullUrl);
+          await AsyncStorage.setItem("profilePhoto", fullUrl);
+        }
+      } catch (error) {
+        console.error("Failed to load avatar:", error);
       }
     };
     loadAvatar();
   }, [user]);
 
   useEffect(() => {
-    const sub = Dimensions.addEventListener("change", () =>
-      setWindowDimensions(Dimensions.get("window"))
+    const handleDimensionsChange = ({ window }) => {
+      setCurrentDimensions(window);
+    };
+
+    const dimensionsListener = Dimensions.addEventListener(
+      "change",
+      handleDimensionsChange
     );
-    return () => sub?.remove();
+
+    return () => {
+      dimensionsListener?.remove();
+    };
   }, []);
 
   const pickImage = async () => {
@@ -70,7 +104,10 @@ const Profile = () => {
         await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (!granted) {
-        Alert.alert("Permission Denied", "You need to allow media access.");
+        Alert.alert(
+          "Permission Denied",
+          "You need to allow media access to change your profile picture."
+        );
         return;
       }
 
@@ -78,229 +115,485 @@ const Profile = () => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 1,
+        quality: 0.8,
       });
 
       if (!result.canceled && result.assets?.length > 0) {
-        const pickedUri = result.assets[0].uri;
-        await uploadAvatar(pickedUri);
-      } else {
-        console.log("User cancelled image picker.");
+        await uploadAvatar(result.assets[0].uri);
       }
     } catch (err) {
       console.error("Image Picker Error:", err);
-      Alert.alert("Error", "Image picker failed.");
+      Alert.alert("Error", "Failed to select image. Please try again.");
     }
   };
 
-  const uploadAvatar = async (uri) => {
+  const uploadAvatar = async (uri, retryCount = 0) => {
+    if (isUploading) return;
+    setIsUploading(true);
+
     try {
       const fileName = uri.split("/").pop();
-      const ext = fileName.split(".").pop();
-      const mimeType = `image/${ext}`;
+      const ext = fileName.split(".").pop().toLowerCase();
+
+      if (!ALLOWED_IMAGE_TYPES.includes(ext)) {
+        throw new Error("Only JPG, JPEG, and PNG images are allowed");
+      }
 
       const formData = new FormData();
       formData.append("avatar", {
         uri,
-        name: fileName,
-        type: mimeType,
+        name: `avatar.${ext}`,
+        type: `image/${ext}`,
       });
 
-      const res = await fetch(`${API_BASE_URL}/api/auth/upload-avatar`, {
-        method: "PUT",
+      const response = await fetch(`${API_BASE_URL}/api/auth/upload-avatar`, {
+        method: "POST",
         headers: {
-          Authorization: `Bearer ${user?.token}`,
-          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${userToken}`,
+          Accept: "application/json",
         },
         body: formData,
       });
 
-      const data = await res.json();
+      const text = await response.text();
+      console.log("Upload raw response:", text);
 
-      if (res.ok) {
-        const fullUrl = `${API_BASE_URL}${data.avatarUrl}`;
-        setAvatarUri(fullUrl);
-        await AsyncStorage.setItem("profilePhoto", fullUrl);
-        Alert.alert("Success", "Profile photo updated!");
-      } else {
-        Alert.alert("Error", data.message || "Upload failed");
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (err) {
+        throw new Error(
+          "Server did not return JSON. Response: " + text.slice(0, 100)
+        );
       }
-    } catch (err) {
-      console.error("Upload error:", err);
-      Alert.alert("Upload error", "Something went wrong.");
+
+      if (!response.ok) throw new Error(data.message || "Upload failed");
+
+      const fullUrl = `${API_BASE_URL}${data.user.avatar}?${Date.now()}`;
+      setAvatarUri(fullUrl);
+
+      await refreshUser(data.user);
+
+      Alert.alert("Success", "Your profile picture has been updated!");
+    } catch (error) {
+      console.error("Upload error:", error);
+
+      if (retryCount < 2) {
+        setTimeout(() => uploadAvatar(uri, retryCount + 1), 1000);
+        return;
+      }
+
+      Alert.alert(
+        "Upload Failed",
+        error.message || "Could not update profile picture. Please try again."
+      );
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const handleLogout = useCallback(() => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        onPress: async () => {
-          await AsyncStorage.clear();
-          logout();
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Logout",
+          onPress: async () => {
+            try {
+              await AsyncStorage.clear();
+              logout();
+            } catch (error) {
+              console.error("Logout error:", error);
+            }
+          },
+          style: "destructive",
         },
-        style: "destructive",
-      },
-    ]);
+      ],
+      { cancelable: true }
+    );
   }, [logout]);
+
+  const menuItems = [
+    {
+      icon: "help-circle-outline",
+      text: "Help & Support",
+      onPress: () => navigation.navigate("HelpSupport"),
+    },
+    {
+      icon: "document-text-outline",
+      text: "Terms & Privacy",
+      onPress: () => navigation.navigate("TermsPrivacy"),
+    },
+    {
+      icon: "alert-circle-outline",
+      text: "Report a Problem",
+      onPress: () => navigation.navigate("ReportScreen"),
+    },
+    {
+      icon: "information-circle-outline",
+      text: "About the app",
+      onPress: () => navigation.navigate("AboutAppScreen"),
+    },
+    ...(user?.role === "admin"
+      ? [
+          {
+            icon: "megaphone-outline",
+            text: "Announcements",
+            onPress: () => navigation.navigate("AnnouncementPage"),
+          },
+        ]
+      : []),
+  ];
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View
-        style={[
-          styles.container,
-          { paddingHorizontal: wp(6), paddingTop: hp(8) },
-        ]}
-      >
-        <View style={[styles.header, { marginBottom: hp(3.5) }]}>
-          <TouchableOpacity onPress={pickImage}>
-            <Image
-              source={avatarUri ? { uri: avatarUri } : DefaultProfileImage}
-              style={[
-                styles.avatar,
-                {
-                  width: wp(30),
-                  height: wp(30),
-                  borderRadius: wp(15),
-                  borderWidth: wp(0.7),
-                  marginBottom: hp(2),
-                },
-              ]}
-            />
-          </TouchableOpacity>
-          <Text style={[styles.name, { fontSize: wp(6) }]}>
-            {user?.name || "Unknown"}
-          </Text>
-          <Text style={[styles.email, { fontSize: wp(4) }]}>
-            {user?.email || "No email"}
-          </Text>
-        </View>
-
-        <View
-          style={[
-            styles.detailsContainer,
-            { padding: wp(5), borderRadius: wp(4), marginBottom: hp(2.5) },
-          ]}
-        >
-          <View style={[styles.detailItem, { marginBottom: hp(2) }]}>
-            <Ionicons name="call-outline" size={wp(6)} color="#4b0082" />
-            <Text style={[styles.detailText, { fontSize: wp(4) }]}>
-              {user?.phone || "N/A"}
-            </Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Ionicons name="calendar-outline" size={wp(6)} color="#4b0082" />
-            <Text style={[styles.detailText, { fontSize: wp(4) }]}>
-              {user?.joinDate || "2025"}
-            </Text>
+      {/* Absolute Header */}
+      <View style={styles.absoluteHeader}>
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={styles.headerTitle}>Profile</Text>
+            <Text style={styles.headerSubtitle}>Manage your account settings</Text>
           </View>
         </View>
-
-        <View
-          style={[
-            styles.menuContainer,
-            { borderRadius: wp(4), paddingHorizontal: wp(5) },
-          ]}
-        >
-          <MenuItem icon="settings-outline" text="Settings" onPress={() => {}} />
-          <MenuItem
-            icon="help-circle-outline"
-            text="Help & Support"
-            onPress={() => navigation.navigate("HelpSupport")}
-          />
-          <MenuItem
-            icon="document-text-outline"
-            text="Terms & Privacy"
-            onPress={() => navigation.navigate("TermsPrivacy")}
-          />
-        </View>
-
-        <TouchableOpacity
-          style={[
-            styles.logoutButton,
-            { borderRadius: wp(2.5), padding: wp(2), borderWidth: wp(0.3) },
-          ]}
-          onPress={handleLogout}
-        >
-          <Text
-            style={[
-              styles.logoutButtonText,
-              { fontSize: wp(4), lineHeight: wp(5) },
-            ]}
-          >
-            Logout
-          </Text>
-        </TouchableOpacity>
       </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header Spacer */}
+        <View style={styles.headerSpacer} />
+
+        {/* Profile Card */}
+        <View style={styles.profileCard}>
+          {/* Avatar Section */}
+          <View style={styles.avatarSection}>
+            <TouchableOpacity
+              onPress={pickImage}
+              style={styles.avatarContainer}
+              disabled={isUploading}
+            >
+              <Image
+                source={
+                  avatarUri
+                    ? {
+                        uri: isUploading
+                          ? `${avatarUri}?${Date.now()}`
+                          : avatarUri,
+                      }
+                    : DefaultProfileImage
+                }
+                style={styles.avatar}
+                onError={() => setAvatarUri(null)}
+              />
+              <View style={styles.cameraIcon}>
+                <Ionicons name="camera" size={20} color="#fff" />
+              </View>
+            </TouchableOpacity>
+            
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>{user?.name || "Not provided"}</Text>
+              <Text style={styles.userEmail}>{user?.email || "Not provided"}</Text>
+              <Text style={styles.userRole}>
+                {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "User"}
+              </Text>
+            </View>
+          </View>
+
+          {/* Personal Details */}
+          <View style={styles.detailsSection}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="person-circle-outline" size={20} color="#6C63FF" />
+              <Text style={styles.sectionTitle}>Personal Information</Text>
+            </View>
+            
+            <View style={styles.detailItem}>
+              <Ionicons name="call-outline" size={18} color="#6C63FF" />
+              <Text style={styles.detailLabel}>Phone:</Text>
+              <Text style={styles.detailValue}>{user?.phone || "Not provided"}</Text>
+            </View>
+            
+            <View style={styles.detailItem}>
+              <Ionicons name="calendar-outline" size={18} color="#6C63FF" />
+              <Text style={styles.detailLabel}>Member since:</Text>
+              <Text style={styles.detailValue}>{user?.joinDate || "2025"}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Menu Options */}
+        <View style={styles.menuSection}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="settings-outline" size={20} color="#6C63FF" />
+            <Text style={styles.sectionTitle}>Settings & Support</Text>
+          </View>
+          
+          <View style={styles.menuContainer}>
+            {menuItems.map((item, index) => (
+              <MenuItem
+                key={item.text}
+                icon={item.icon}
+                text={item.text}
+                onPress={item.onPress}
+                isLast={index === menuItems.length - 1}
+              />
+            ))}
+          </View>
+        </View>
+
+        {/* Logout Button */}
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          accessible={true}
+          accessibilityLabel="Logout"
+          accessibilityRole="button"
+        >
+          <Ionicons name="log-out-outline" size={20} color="#fff" />
+          <Text style={styles.logoutButtonText}>Logout</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* Upload Indicator */}
+      {isUploading && (
+        <View style={styles.uploadOverlay}>
+          <View style={styles.uploadIndicator}>
+            <Ionicons name="cloud-upload" size={40} color="#6C63FF" />
+            <Text style={styles.uploadText}>Updating Profile...</Text>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#f5f5f5" },
-  container: { flex: 1 },
-  header: { alignItems: "center" },
-  avatar: { borderColor: "#4b0082" },
-  name: { fontWeight: "bold", color: "#333" },
-  email: { color: "#666" },
-  detailsContainer: {
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
+  },
+  absoluteHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+    backgroundColor: "#6C63FF",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  headerContent: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+  },
+  scrollContainer: {
+    padding: 16,
+    paddingTop: 120, // Adjusted for proper spacing
+    paddingBottom: 40,
+  },
+  headerSpacer: {
+    height: 100, // Space for the absolute header
+  },
+  profileCard: {
     backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowRadius: 8,
     elevation: 3,
   },
-  detailItem: { flexDirection: "row", alignItems: "center" },
-  detailText: {
-    color: "#333",
-    fontWeight: "500",
-    marginLeft: 10,
+  avatarSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  avatarContainer: {
+    position: "relative",
+    marginRight: 16,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: "#6C63FF",
+  },
+  cameraIcon: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: "#6C63FF",
+    borderRadius: 12,
+    padding: 4,
+  },
+  userInfo: {
     flex: 1,
-    textAlign: "left",
-    lineHeight: 20,
+  },
+  userName: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#2C3E50",
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 14,
+    color: "#7F8C8D",
+    marginBottom: 4,
+  },
+  userRole: {
+    fontSize: 12,
+    color: "#6C63FF",
+    fontWeight: "500",
+    backgroundColor: "#f0e6ff",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+  },
+  detailsSection: {
+    marginBottom: 8,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#2C3E50",
+    marginLeft: 8,
+  },
+  detailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: "#7F8C8D",
+    marginLeft: 8,
+    marginRight: 4,
+    width: 100,
+  },
+  detailValue: {
+    fontSize: 14,
+    color: "#2C3E50",
+    fontWeight: "500",
+    flex: 1,
+  },
+  menuSection: {
+    marginBottom: 24,
   },
   menuContainer: {
     backgroundColor: "#fff",
+    borderRadius: 16,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowRadius: 8,
     elevation: 3,
-    marginBottom: 20,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
+    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    paddingVertical: 16,
+    borderBottomColor: "#f5f5f5",
+  },
+  menuItemLast: {
+    borderBottomWidth: 0,
+  },
+  menuIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#f0e6ff",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
   },
   menuText: {
     flex: 1,
-    color: "#333",
+    fontSize: 16,
+    color: "#2C3E50",
     fontWeight: "500",
-    lineHeight: 15,
-    padding: 10,
   },
   logoutButton: {
-    backgroundColor: "#fff",
-    borderColor: "#ff4444",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#FF6B6B",
+    padding: 16,
+    borderRadius: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   logoutButtonText: {
-    color: "#ff4444",
-    fontWeight: "bold",
-    textAlign: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  uploadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  uploadIndicator: {
+    backgroundColor: "#fff",
+    padding: 24,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  uploadText: {
+    fontSize: 16,
+    color: "#2C3E50",
+    marginTop: 12,
+    fontWeight: "500",
   },
 });
 

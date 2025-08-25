@@ -1,4 +1,4 @@
-import  { useState, useEffect, useCallback, memo } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { 
   View, 
   Text, 
@@ -8,10 +8,12 @@ import {
   RefreshControl,
   SafeAreaView,
   StatusBar,
-  
   Dimensions,
-  FlatList
+  FlatList,
+  Animated,
+  Easing
 } from "react-native";
+
 import BusCard from "../components/BusCards"; 
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -28,6 +30,16 @@ const Track = () => {
   const [filteredBuses, setFilteredBuses] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [windowDimensions, setWindowDimensions] = useState(Dimensions.get('window'));
+  const fadeAnim = useState(new Animated.Value(0))[0];
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 800,
+      easing: Easing.out(Easing.exp),
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -103,60 +115,83 @@ const Track = () => {
   };
 
   return (
-    <LinearGradient
-      colors={['#f5f7fa', '#e4e8f0']}
-      style={styles.gradientContainer}
-    >
+    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="dark-content" backgroundColor="#f5f7fa" />
+        <StatusBar barStyle="light-content" backgroundColor="#6C63FF" />
         
         {/* Header Section */}
-        <View style={[styles.headerContainer, {
-          paddingHorizontal: wp(6),
-          paddingTop: hp(8),
-          paddingBottom: hp(1)
-        }]}>
-          <Text style={[styles.headerTitle, { fontSize: wp(7) }]}>Bus Tracker</Text>
-          <TouchableOpacity 
-            onPress={fetchBusData} 
-            style={styles.refreshButton}
-          >
-            <Ionicons 
-              name={refreshing ? "refresh" : "refresh-outline"} 
-              size={wp(6)} 
-              color="#4b0082" 
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Search Bar */}
-        <View style={[styles.searchContainer, {
-          marginHorizontal: wp(6),
-          marginVertical: hp(2),
-          paddingHorizontal: wp(4),
-          paddingVertical: hp(1)
-        }]}>
-          <Ionicons 
-            name="search" 
-            size={wp(5)} 
-            color="#7a7a7a" 
-            style={styles.searchIcon} 
-          />
-          <TextInput
-            placeholder="Search bus number..."
-            placeholderTextColor="#7a7a7a"
-            style={[styles.searchInput, { fontSize: wp(4) }]}
-            value={search}
-            onChangeText={setSearch}
-          />
-          {search ? (
+        <LinearGradient
+          colors={['#6C63FF', '#7B73FF']}
+          style={[styles.headerContainer, {
+            paddingHorizontal: wp(5),
+            paddingTop: hp(4),
+            paddingBottom: hp(2)
+          }]}
+        >
+          <View style={styles.headerContent}>
+            <View>
+              <Text style={[styles.headerTitle, { fontSize: wp(6) }]}>Track Buses</Text>
+              <Text style={[styles.headerSubtitle, { fontSize: wp(3.5) }]}>
+                Real-time bus tracking
+              </Text>
+            </View>
             <TouchableOpacity 
-              onPress={() => setSearch("")} 
-              style={styles.clearButton}
+              onPress={fetchBusData} 
+              style={styles.refreshButton}
             >
-              <Ionicons name="close-circle" size={wp(5)} color="#7a7a7a" />
+              <Ionicons 
+                name={refreshing ? "refresh" : "refresh-outline"} 
+                size={wp(5.5)} 
+                color="#fff" 
+              />
             </TouchableOpacity>
-          ) : null}
+          </View>
+
+          {/* Search Bar */}
+          <View style={[styles.searchContainer, {
+            marginTop: hp(2),
+            paddingHorizontal: wp(4),
+          }]}>
+            <Ionicons 
+              name="search" 
+              size={wp(5)} 
+              color="#999" 
+              style={styles.searchIcon} 
+            />
+            <TextInput
+              placeholder="Search bus number..."
+              placeholderTextColor="#999"
+              style={[styles.searchInput, { fontSize: wp(4) }]}
+              value={search}
+              onChangeText={setSearch}
+            />
+            {search ? (
+              <TouchableOpacity 
+                onPress={() => setSearch("")} 
+                style={styles.clearButton}
+              >
+                <Ionicons name="close-circle" size={wp(5)} color="#999" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </LinearGradient>
+
+        {/* Stats Bar */}
+        <View style={[styles.statsContainer, { marginHorizontal: wp(5) }]}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{busData.length}</Text>
+            <Text style={styles.statLabel}>Total Buses</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{filteredBuses.length}</Text>
+            <Text style={styles.statLabel}>Filtered</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="time-outline" size={wp(4.5)} color="#6C63FF" />
+            <Text style={styles.statLabel}>Live</Text>
+          </View>
         </View>
 
         {/* Bus List */}
@@ -172,88 +207,114 @@ const Track = () => {
           )}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: hp(3), paddingHorizontal: wp(4) }
+            { paddingBottom: hp(3), paddingHorizontal: wp(5) }
           ]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={fetchBusData}
-              tintColor="#4b0082"
-              colors={['#4b0082']}
+              tintColor="#6C63FF"
+              colors={['#6C63FF']}
             />
           }
           ListEmptyComponent={
-            <View style={[styles.emptyState, { paddingTop: hp(15) }]}>
+            <View style={[styles.emptyState, { paddingTop: hp(10) }]}>
               <Ionicons 
                 name="bus-outline" 
-                size={wp(15)} 
-                color="#4b0082" 
+                size={wp(20)} 
+                color="#E5E5E5" 
                 style={styles.emptyIcon}
               />
-              <Text style={[styles.emptyText, { fontSize: wp(4.5) }]}>No buses found</Text>
+              <Text style={[styles.emptyText, { fontSize: wp(4.5) }]}>
+                {search ? "No buses found" : "No buses available"}
+              </Text>
+              <Text style={[styles.emptySubtext, { fontSize: wp(3.8) }]}>
+                {search ? "Try a different search term" : "Pull down to refresh"}
+              </Text>
               {search ? (
                 <TouchableOpacity 
                   onPress={() => setSearch("")}
-                  style={styles.clearSearchButton}
+                  style={[styles.actionButton, { marginTop: hp(2) }]}
                 >
-                  <Text style={styles.clearSearchText}>Clear search</Text>
+                  <Text style={styles.actionButtonText}>Clear search</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity 
                   onPress={fetchBusData}
-                  style={styles.retryButton}
+                  style={[styles.actionButton, { marginTop: hp(2) }]}
                 >
-                  <Text style={styles.retryText}>Try again</Text>
+                  <Text style={styles.actionButtonText}>Refresh</Text>
                 </TouchableOpacity>
               )}
             </View>
           }
+          ListHeaderComponent={
+            filteredBuses.length > 0 ? (
+              <Text style={[styles.listHeader, { fontSize: wp(4) }]}>
+                Available Buses ({filteredBuses.length})
+              </Text>
+            ) : null
+          }
         />
       </SafeAreaView>
-    </LinearGradient>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  gradientContainer: {
+  container: {
     flex: 1,
+    backgroundColor: '#F8FAFC',
   },
   safeArea: {
     flex: 1,
   },
   headerContainer: {
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    paddingBottom: 20,
+  },
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'transparent',
+    marginTop:10
+
   },
   headerTitle: {
     fontWeight: '800',
-    color: '#4b0082',
+    color: '#fff',
     letterSpacing: 0.5,
   },
+  headerSubtitle: {
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 4,
+  },
   refreshButton: {
-    padding: 8,
+    padding: 10,
     borderRadius: 20,
-    backgroundColor: 'rgba(75, 0, 130, 0.1)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fff',
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    height: 50,
+    marginTop: 15,
+    marginBottom:20
   },
   searchIcon: {
     marginRight: 12,
   },
   searchInput: {
     flex: 1,
-    height: 40,
+    height: '100%',
     color: '#333',
     fontWeight: '500',
   },
@@ -261,10 +322,50 @@ const styles = StyleSheet.create({
     padding: 4,
     marginLeft: 8,
   },
-  scrollView: {
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 15,
+    marginTop: -25,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1,
+  },
+  statItem: {
+    alignItems: 'center',
     flex: 1,
   },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#6C63FF',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  statDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: '#E2E8F0',
+  },
   scrollContent: {
+    paddingTop: 10,
+  },
+  listHeader: {
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 15,
+    marginTop: 5,
   },
   emptyState: {
     flex: 1,
@@ -272,36 +373,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyIcon: {
-    opacity: 0.7,
-    marginBottom: 16,
+    opacity: 0.5,
+    marginBottom: 20,
   },
   emptyText: {
-    color: '#555',
+    color: '#64748B',
     fontWeight: '600',
     marginBottom: 8,
+    textAlign: 'center',
   },
-  clearSearchButton: {
-    marginTop: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(75, 0, 130, 0.1)',
+  emptySubtext: {
+    color: '#94A3B8',
+    textAlign: 'center',
+    paddingHorizontal: 40,
+  },
+  actionButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#6C63FF',
     borderRadius: 8,
   },
-  clearSearchText: {
-    color: '#4b0082',
-    fontWeight: '600',
-  },
-  retryButton: {
-    marginTop: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(75, 0, 130, 0.1)',
-    borderRadius: 8,
-  },
-  retryText: {
-    color: '#4b0082',
+  actionButtonText: {
+    color: '#fff',
     fontWeight: '600',
   },
 });
 
-export default Track;
+export default Track; 

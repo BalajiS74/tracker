@@ -12,11 +12,16 @@ import {
   Alert,
   StatusBar,
   Platform,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import * as Speech from "expo-speech";
 import * as Location from "expo-location";
 import axios from "axios";
+import { useBus } from "../context/BusContext";
+import UnavailableBusScreen from "../components/UnavailableBusScreen";
 
 const getRouteData = (busID) => {
   try {
@@ -78,10 +83,11 @@ const MemoStopItem = memo(
           <Text style={[styles.stopName, isCurrent && styles.activeStopName]}>
             {item.name}
           </Text>
-          <Text>{`Km:${item.cumulative_km_to_next}`}</Text>
+          <Text style={styles.stopDistance}>{`${item.cumulative_km_to_next} km`}</Text>
         </View>
         {isCurrent && (
           <View style={styles.currentStopBadge}>
+            <Ionicons name="location" size={12} color="#fff" />
             <Text style={styles.currentStopBadgeText}>NOW</Text>
           </View>
         )}
@@ -114,6 +120,10 @@ const BusDetails = ({ route }) => {
   const blinkAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  const { buses } = useBus(); // ✅ access buses from context
+
+  const busData = buses.find((bus) => bus.busid === busID);
+  
   useEffect(() => {
     if (activeTab !== "route") return;
 
@@ -158,7 +168,7 @@ const BusDetails = ({ route }) => {
       blink.stop();
       pulse.stop();
     };
-  }, [activeTab, blinkAnim, pulseAnim]);
+  }, [activeTab, blinkAnim, pulseAnim, currentStopIdx]);
 
   useEffect(() => {
     const data = getRouteData(busID);
@@ -167,7 +177,7 @@ const BusDetails = ({ route }) => {
 
   // 1. Wrap the fetch function with useCallback
   const fetchCurrentLocation = useCallback(async () => {
-    if (!routeData || !busID) return;
+    if (!routeData || !busID ) return;
 
     const firebaseURL = ` https://bus-tracking-school-92dd9-default-rtdb.asia-southeast1.firebasedatabase.app/gps/${busID}.json`;
 
@@ -175,15 +185,14 @@ const BusDetails = ({ route }) => {
       const response = await axios.get(firebaseURL);
       const data = response.data;
       setBusInfo(data);
-
+            
       const now = Date.now();
       const lastSeen = data?.lastSeen ? data.lastSeen * 1000 : 0;
       const isRecent = now - lastSeen <= 30000;
       const isBusOnline = data?.status === true && isRecent;
 
       setBusOnlineStatus(isBusOnline);
-      if (!data?.latitude || !data?.longitude||!isBusOnline) {
-        // ||!isBusOnline
+      if (!data?.latitude || !data?.longitude || !isBusOnline) {
         setCurrentStopIdx(-1);
         setLoading(false);
         return;
@@ -223,7 +232,6 @@ const BusDetails = ({ route }) => {
       setLoading(false);
     }
   }, [routeData, busID, lastConfirmedStopIdx]);
-  // Important dependencies!
 
   useEffect(() => {
     fetchCurrentLocation(); // call once
@@ -255,6 +263,7 @@ const BusDetails = ({ route }) => {
       Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
+
   // speak the bus stop name
   useEffect(() => {
     if (!routeData || lastConfirmedStopIdx < 0) return;
@@ -351,7 +360,7 @@ const BusDetails = ({ route }) => {
   if (!routeData || loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4f46e5" />
+        <ActivityIndicator size="large" color="#6C63FF" />
         <Text style={styles.loadingText}>Loading route data...</Text>
       </SafeAreaView>
     );
@@ -375,6 +384,7 @@ const BusDetails = ({ route }) => {
       userLocation.longitude
     );
   }
+  
   function reverseRouteWithDistances(stops) {
     const reversed = [...stops].reverse();
 
@@ -401,6 +411,7 @@ const BusDetails = ({ route }) => {
 
     return newStops;
   }
+  
   function isEvening() {
     const now = new Date();
     const hours = now.getHours();
@@ -424,19 +435,43 @@ const BusDetails = ({ route }) => {
     ? reverseRouteWithDistances(routeData.stops) // evening or before 5am
     : routeData.stops; // morning 5am onwards
 
+  if (busData?.isNotAvailable) {
+    return <UnavailableBusScreen busData={busData} />;
+  }
+
   return (
     <View style={styles.container} edges={["top", "left", "right"]}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{busID}</Text>
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>{status}</Text>
+      {/* Header with gradient background */}
+      <LinearGradient
+        colors={["#6C63FF", "#4A43C9"]}
+        style={styles.headerGradient}
+      >
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Ionicons name="bus" size={24} color="#fff" />
+            <Text style={styles.headerTitle}>{busID}</Text>
+          </View>
+          <View style={[styles.statusBadge, 
+            status === 'Parked' ? styles.statusParked : 
+            status === 'Stopped' ? styles.statusStopped : 
+            styles.statusMoving
+          ]}>
+            <Text style={styles.statusText}>{status}</Text>
+          </View>
         </View>
-      </View>
+      </LinearGradient>
+
+      {/* Tab Navigation */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
           onPress={handleTabRoute}
           style={[styles.tabButton, activeTab === "route" && styles.activeTab]}
         >
+          <Ionicons 
+            name="map-outline" 
+            size={20} 
+            color={activeTab === "route" ? "#6C63FF" : "#94A3B8"} 
+          />
           <Text
             style={[
               styles.tabText,
@@ -446,6 +481,9 @@ const BusDetails = ({ route }) => {
             Route
           </Text>
         </TouchableOpacity>
+        
+        <View style={styles.tabDivider} />
+        
         <TouchableOpacity
           onPress={handleTabDetails}
           style={[
@@ -453,6 +491,11 @@ const BusDetails = ({ route }) => {
             activeTab === "details" && styles.activeTab,
           ]}
         >
+          <Ionicons 
+            name="information-circle-outline" 
+            size={20} 
+            color={activeTab === "details" ? "#6C63FF" : "#94A3B8"} 
+          />
           <Text
             style={[
               styles.tabText,
@@ -471,289 +514,387 @@ const BusDetails = ({ route }) => {
             keyExtractor={(_, idx) => idx.toString()}
             renderItem={renderStopItem}
             contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
           />
         ) : (
-          <View style={styles.detailsContainer}>
+          <ScrollView 
+            style={styles.detailsContainer}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.detailCard}>
-              <Text style={styles.detailCardTitle}>Location Details</Text>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Speed:</Text>
-                <Text style={styles.detailValue}>
-                  {computedSpeed.toFixed(1)} km/h
-                </Text>
+              <View style={styles.detailCardHeader}>
+                <Ionicons name="location" size={20} color="#6C63FF" />
+                <Text style={styles.detailCardTitle}>Location Details</Text>
               </View>
+              
+              <View style={styles.detailGrid}>
+                <View style={styles.detailItem}>
+                  <View style={styles.detailIconContainer}>
+                    <Ionicons name="speedometer" size={18} color="#6C63FF" />
+                  </View>
+                  <View style={styles.detailContent}>
+                    <Text style={styles.detailLabel}>Current Speed</Text>
+                    <Text style={styles.detailValue}>
+                      {computedSpeed.toFixed(1)} km/h
+                    </Text>
+                  </View>
+                </View>
 
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>
-                  {userBusDistance !== null && userBusDistance < 30
-                    ? "Distance to Next Stop:"
-                    : "Distance to You:"}
-                </Text>
-                <Text style={styles.detailValue}>
-                  {userBusDistance !== null && userBusDistance < 30
-                    ? (() => {
-                        // Calculate distance to next stop
-                        if (
-                          currentStopIdx + 1 < routeData.stops.length &&
-                          busInfo?.latitude &&
-                          busInfo?.longitude
-                        ) {
-                          const nextStop = routeData.stops[currentStopIdx + 1];
-                          const dist = calculateDistance(
-                            busInfo.latitude,
-                            busInfo.longitude,
-                            nextStop.lat,
-                            nextStop.lng
-                          );
-                          return `${(dist / 1000).toFixed(2)} km`;
-                        }
-                        return "--";
-                      })()
-                    : userBusDistance !== null
-                    ? `${(userBusDistance / 1000).toFixed(2)} km`
-                    : "--"}
-                </Text>
-              </View>
+                <View style={styles.detailItem}>
+                  <View style={styles.detailIconContainer}>
+                    <Ionicons name="navigate" size={18} color="#6C63FF" />
+                  </View>
+                  <View style={styles.detailContent}>
+                    <Text style={styles.detailLabel}>
+                      {userBusDistance !== null && userBusDistance < 30
+                        ? "To Next Stop"
+                        : "To Your Location"}
+                    </Text>
+                    <Text style={styles.detailValue}>
+                      {userBusDistance !== null && userBusDistance < 30
+                        ? (() => {
+                            if (currentStopIdx + 1 < routeData.stops.length && busInfo?.latitude && busInfo?.longitude) {
+                              const nextStop = routeData.stops[currentStopIdx + 1];
+                              const dist = calculateDistance(
+                                busInfo.latitude,
+                                busInfo.longitude,
+                                nextStop.lat,
+                                nextStop.lng
+                              );
+                              return `${(dist / 1000).toFixed(2)} km`;
+                            }
+                            return "--";
+                          })()
+                        : userBusDistance !== null
+                        ? `${(userBusDistance / 1000).toFixed(2)} km`
+                        : "--"}
+                    </Text>
+                  </View>
+                </View>
 
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Estimated Arrival Time:</Text>
-                <Text style={styles.detailValue}>{etaToNextStop}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Stop ETA Countdown:</Text>
-                <Text style={styles.detailValue}>{countdown}</Text>
+                <View style={styles.detailItem}>
+                  <View style={styles.detailIconContainer}>
+                    <Ionicons name="time" size={18} color="#6C63FF" />
+                  </View>
+                  <View style={styles.detailContent}>
+                    <Text style={styles.detailLabel}>Estimated Arrival</Text>
+                    <Text style={styles.detailValue}>{etaToNextStop}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.detailItem}>
+                  <View style={styles.detailIconContainer}>
+                    <Ionicons name="timer" size={18} color="#6C63FF" />
+                  </View>
+                  <View style={styles.detailContent}>
+                    <Text style={styles.detailLabel}>Countdown</Text>
+                    <Text style={styles.detailValue}>{countdown}</Text>
+                  </View>
+                </View>
               </View>
             </View>
-          </View>
+
+            {/* Additional Info Card */}
+            <View style={styles.infoCard}>
+              <View style={styles.infoCardHeader}>
+                <Ionicons name="information-circle" size={20} color="#6C63FF" />
+                <Text style={styles.infoCardTitle}>Bus Information</Text>
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoText}>
+                  • Real-time tracking updates every 30 seconds
+                </Text>
+                <Text style={styles.infoText}>
+                  • ETA is calculated based on current speed and traffic conditions
+                </Text>
+                <Text style={styles.infoText}>
+                  • Distance measurements are approximate
+                </Text>
+              </View>
+            </View>
+          </ScrollView>
         )}
       </View>
     </View>
   );
 };
 
-// styles
+// Updated Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#e4e7ebff",
+    backgroundColor: "#F8FAFC",
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#f8fafc",
-    paddingHorizontal: normalize(8),
+    paddingHorizontal: 16,
   },
   loadingText: {
-    marginTop: normalize(16),
-    color: "#4f46e5",
-    fontSize: normalize(16),
+    marginTop: 16,
+    color: "#6C63FF",
+    fontSize: 16,
     fontWeight: "500",
     textAlign: "center",
+  },
+  headerGradient: {
+    paddingTop: 80,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
-    padding: normalize(16),
-    backgroundColor: "#fbfbfbff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   headerTitle: {
-    fontSize: normalize(20),
-    fontWeight: "bold",
-    color: "#1e293b",
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#fff",
   },
   statusBadge: {
-    backgroundColor: "#e0e7ff",
-    paddingHorizontal: normalize(12),
-    paddingVertical: normalize(6),
-    borderRadius: normalize(20),
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  statusMoving: {
+    backgroundColor: "#22C55E",
+  },
+  statusStopped: {
+    backgroundColor: "#F59E0B",
+  },
+  statusParked: {
+    backgroundColor: "#EF4444",
   },
   statusText: {
-    color: "#4f46e5",
+    color: "#fff",
     fontWeight: "600",
-    fontSize: normalize(14),
+    fontSize: 14,
   },
   tabContainer: {
     flexDirection: "row",
+    backgroundColor: "#fff",
+    marginHorizontal: 20,
+    marginTop: -8,
+    borderRadius: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    overflow: "hidden",
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#ffffff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
+    paddingVertical: 16,
+    gap: 8,
+  },
+  activeTab: {
+    backgroundColor: "#F0E6FF",
+  },
+  tabDivider: {
+    width: 1,
+    backgroundColor: "#E2E8F0",
+    marginVertical: 12,
+  },
+  tabText: {
+    fontWeight: "600",
+    color: "#94A3B8",
+    fontSize: 16,
+  },
+  activeTabText: {
+    color: "#6C63FF",
+  },
+  contentContainer: {
+    flex: 1,
+    padding: 20,
+  },
+  listContainer: {
+    paddingBottom: 20,
+  },
+  stopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: "#fff",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
-  tabButton: {
-    paddingVertical: normalize(16),
-    paddingHorizontal: normalize(32),
-  },
-  activeTab: {
-    borderBottomWidth: 3,
-    borderBottomColor: "#4f46e5",
-  },
-  tabText: {
-    fontWeight: "600",
-    color: "#64748b",
-    fontSize: normalize(16),
-  },
-  activeTabText: {
-    color: "#4f46e5",
-  },
-  contentContainer: {
-    flex: 1,
-    padding: normalize(16),
-  },
-  listContainer: {
-    paddingBottom: normalize(20),
-  },
-  stopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: normalize(12),
-    padding: normalize(16),
-    borderRadius: normalize(12),
-    backgroundColor: "#ffffff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
-  },
   activeStopRow: {
-    backgroundColor: "#f5f3ff",
+    backgroundColor: "#F0E6FF",
     borderLeftWidth: 4,
-    borderLeftColor: "#4f46e5",
+    borderLeftColor: "#6C63FF",
   },
   dotContainer: {
-    width: normalize(36),
+    width: 36,
     alignItems: "center",
-    marginRight: normalize(12),
+    marginRight: 12,
   },
   dot: {
-    width: normalize(20),
-    height: normalize(20),
-    borderRadius: normalize(10),
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 3,
     zIndex: 2,
   },
   currentDot: {
-    backgroundColor: "#4f46e5",
-    borderColor: "#4f46e5",
+    backgroundColor: "#6C63FF",
+    borderColor: "#6C63FF",
   },
   pastDot: {
-    backgroundColor: "#a5b4fc",
-    borderColor: "#818cf8",
+    backgroundColor: "#A5B4FC",
+    borderColor: "#818CF8",
   },
   upcomingDot: {
-    backgroundColor: "#ffffff",
-    borderColor: "#c7d2fe",
+    backgroundColor: "#fff",
+    borderColor: "#C7D2FE",
   },
   line: {
-    width: normalize(2),
+    width: 2,
     flex: 1,
-    marginTop: normalize(4),
-    marginBottom: -normalize(20),
+    marginTop: 4,
+    marginBottom: -20,
   },
   pastLine: {
-    backgroundColor: "#a5b4fc",
+    backgroundColor: "#A5B4FC",
   },
   upcomingLine: {
-    backgroundColor: "#c7d2fe",
+    backgroundColor: "#C7D2FE",
   },
   stopInfo: {
     flex: 1,
   },
   stopName: {
-    fontSize: normalize(16),
+    fontSize: 16,
     fontWeight: "600",
     color: "#334155",
-    marginBottom: normalize(4),
-    padding: normalize(4),
-    lineHeight: normalize(13),
+    marginBottom: 4,
+  },
+  stopDistance: {
+    fontSize: 14,
+    color: "#64748B",
   },
   activeStopName: {
-    color: "#4f46e5",
+    color: "#6C63FF",
     fontWeight: "700",
   },
   currentStopBadge: {
-    backgroundColor: "#4f46e5",
-    borderRadius: normalize(12),
-    paddingHorizontal: normalize(10),
-    paddingVertical: normalize(6),
+    backgroundColor: "#6C63FF",
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   currentStopBadgeText: {
     color: "white",
-    fontSize: normalize(12),
+    fontSize: 12,
     fontWeight: "bold",
   },
   detailsContainer: {
     flex: 1,
   },
   detailCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: normalize(16),
-    padding: normalize(20),
-    marginBottom: normalize(16),
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  detailCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 20,
   },
   detailCardTitle: {
-    color: "#4f46e5",
+    color: "#6C63FF",
     fontWeight: "bold",
-    fontSize: normalize(18),
-    marginBottom: normalize(16),
+    fontSize: 18,
   },
-  detailRow: {
+  detailGrid: {
+    gap: 16,
+  },
+  detailItem: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: normalize(5),
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
+    alignItems: "center",
+    gap: 12,
+    padding: 16,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+  },
+  detailIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F0E6FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  detailContent: {
+    flex: 1,
   },
   detailLabel: {
-    color: "#64748b",
-    fontWeight: "600",
-    fontSize: normalize(15),
+    color: "#64748B",
+    fontWeight: "500",
+    fontSize: 14,
+    marginBottom: 4,
   },
   detailValue: {
-    color: "#1e293b",
-    fontWeight: "500",
-    fontSize: normalize(15),
-    paddingVertical: "10",
-    paddingHorizontal: "10",
-  },
-  movingStatus: {
-    color: "#10b981",
+    color: "#1E293B",
     fontWeight: "600",
-    paddingVertical: "5",
-    paddingHorizontal: "10",
+    fontSize: 16,
   },
-  stoppedStatus: {
-    color: "#f59e0b",
-    fontWeight: "600",
-    paddingVertical: "5",
-    paddingHorizontal: "10",
+  infoCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  parkedStatus: {
-    color: "#64748b",
-    fontWeight: "600",
-    paddingVertical: "5",
-    paddingHorizontal: "10",
+  infoCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
   },
-  nextStop: {
-    color: "#4f46e5",
+  infoCardTitle: {
+    color: "#6C63FF",
     fontWeight: "600",
-    paddingVertical: "5",
-    paddingHorizontal: "10",
+    fontSize: 16,
+  },
+  infoContent: {
+    gap: 8,
+  },
+  infoText: {
+    color: "#64748B",
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
 

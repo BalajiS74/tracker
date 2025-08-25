@@ -2,13 +2,17 @@
   "expo": {
     "name": "tracker",
     "slug": "tracker",
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/applogo.png",
     "userInterfaceStyle": "light",
     "splash": {
       "backgroundColor": "#ffffff",
-        "image": "./assets/applogo.png"
+      "image": "./assets/applogo.png"
     },
     "android": {
       "adaptiveIcon": {
@@ -33,6 +37,15 @@
     "updates": {
       "url": "https://u.expo.dev/84394d6b-8cb6-4d63-b936-d3c48d6549a2"
     },
-    "ios": {}
+    "ios": {},
+    "plugins": [
+      [
+        "sentry-expo",
+        {
+          "organization": "your-org-slug",
+          "project": "your-project-slug"
+        }
+      ]
+    ]
   }
 }
