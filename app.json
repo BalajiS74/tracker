@@ -45,7 +45,8 @@
           "organization": "your-org-slug",
           "project": "your-project-slug"
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }
