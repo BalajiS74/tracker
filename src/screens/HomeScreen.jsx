@@ -32,7 +32,7 @@ import {
   handleEmergency,
 } from "../services/userLocation.js";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 const BusCard = memo(({ route, nextStop, time, onPress }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -48,7 +48,11 @@ const BusCard = memo(({ route, nextStop, time, onPress }) => {
 
   return (
     <Animated.View style={{ opacity: fadeAnim }}>
-      <TouchableOpacity style={styles.busCard} onPress={onPress} activeOpacity={0.8}>
+      <TouchableOpacity
+        style={styles.busCard}
+        onPress={onPress}
+        activeOpacity={0.8}
+      >
         <View style={styles.busCardIconContainer}>
           <Ionicons name="bus" size={wp("6%")} color="#fff" />
         </View>
@@ -66,7 +70,11 @@ const BusCard = memo(({ route, nextStop, time, onPress }) => {
 });
 
 const EmergencyButton = ({ onPress }) => (
-  <TouchableOpacity style={styles.emergencyButton} onPress={onPress} activeOpacity={0.9}>
+  <TouchableOpacity
+    style={styles.emergencyButton}
+    onPress={onPress}
+    activeOpacity={0.9}
+  >
     <View style={styles.emergencyButtonInner}>
       <Ionicons name="alert-circle" size={wp("6%")} color="#fff" />
       <Text style={styles.emergencyButtonText}>Emergency</Text>
@@ -307,10 +315,23 @@ export default function HomeScreen({ navigation }) {
         ]}
       >
         <View style={styles.headerTextContainer}>
-          <Text style={styles.collegeName}></Text>
+          {/* College Logo */}
+          <Image
+            source={{
+              uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSKRD768wIKEzDuDJz-uksCX5QQvOlzkKDMJQ&s",
+            }} // replace with your logo
+            style={styles.logo}
+            resizeMode="contain"
+          />
+
+          {/* College Name */}
           <Text style={styles.title}>SCAD Polytechnic College</Text>
+
+          {/* Subtitle / Tagline */}
+          <Text style={styles.subtitle}>
+            Empowering Students for a Brighter Future
+          </Text>
         </View>
-        
       </Animated.View>
 
       <Animated.FlatList
@@ -397,7 +418,14 @@ const styles = StyleSheet.create({
     fontSize: wp("5.5%"),
     fontWeight: "700",
     color: "#fff",
-    textAlign:"center"
+    textAlign: "center",
+    paddingHorizontal:5
+  },
+  subtitle: {
+    fontSize: wp("4.5%"),
+    color: "rgba(255,255,255,0.85)",
+    marginTop: hp("0.5%"),
+    textAlign: "center",
   },
   headerTextContainer: {
     flex: 1,
@@ -410,7 +438,7 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.8)",
   },
   scrollContent: {
-    paddingTop: hp("15%"),
+    paddingTop: hp("12%"),
     paddingBottom: hp("2%"),
     paddingHorizontal: wp("4%"),
   },
@@ -511,7 +539,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
- 
+
   promoContent: {
     position: "absolute",
     bottom: 0,

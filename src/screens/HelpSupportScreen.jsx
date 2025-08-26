@@ -230,7 +230,10 @@ const HelpSupportScreen = () => {
                 activeOpacity={0.7}
               >
                 <View
-                  style={[styles.contactIcon, { backgroundColor: method.color }]}
+                  style={[
+                    styles.contactIcon,
+                    { backgroundColor: method.color },
+                  ]}
                 >
                   <MaterialIcons
                     name={method.icon}
@@ -342,6 +345,7 @@ const styles = StyleSheet.create({
     color: "#2C3E50",
   },
   quickResources: {
+    marginTop: hp("5%"),
     marginBottom: hp("3%"),
   },
   resourcesScroll: {

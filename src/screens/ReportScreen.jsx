@@ -14,6 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
@@ -21,20 +22,18 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
-
 import { AuthContext } from "../context/AuthContext";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
-// Example bus list
+// ------------------------ Static Data ------------------------
 const busList = [
-  { id: "BUS123", name: "Scad to tvl" },
-  { id: "BUS456", name: "Scad to kavalkinaru" },
-  { id: "BUS789", name: "Scad to alangulam" },
-  { id: "BUS1011", name: "Scad to KTC nagar" },
+  { id: "BUS123", name: "Scad to TVL" },
+  { id: "BUS456", name: "Scad to Kavalkinaru" },
+  { id: "BUS789", name: "Scad to Alangulam" },
+  { id: "BUS1011", name: "Scad to KTC Nagar" },
 ];
 
-// Helper to load bus stops
 const getRouteData = (busID) => {
   try {
     const files = {
@@ -49,21 +48,27 @@ const getRouteData = (busID) => {
   }
 };
 
+// ------------------------ Main Component ------------------------
 const ReportScreen = () => {
-  const { user, userToken } = useContext(AuthContext);
+  const { user, apiRequest, accessToken, isLoading } = useContext(AuthContext);
+
   const [reportType, setReportType] = useState("general");
   const [description, setDescription] = useState("");
   const [selectedBus, setSelectedBus] = useState("");
   const [selectedStop, setSelectedStop] = useState("");
   const [stopList, setStopList] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+
   const [activeTab, setActiveTab] = useState("new");
   const [history, setHistory] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [replyText, setReplyText] = useState("");
+
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
+  const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
 
-  // Animation for tab switch
+  // ------------------------ Effects ------------------------
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -81,29 +86,55 @@ const ReportScreen = () => {
     ]).start();
   }, [activeTab]);
 
-  // Replace localhost with your LAN IP if testing on device
-  const BASE_URL = "https://trakerbackend.onrender.com"; // <-- Change to your PC's IP
+  useEffect(() => {
+    if (!isLoading && activeTab === "history") {
+      if (user?.role === "admin") fetchAllReports();
+      else fetchHistory();
+    }
+  }, [activeTab, user, isLoading]);
 
-  // Fetch user's reports safely
+  // ------------------------ Handlers ------------------------
   const fetchHistory = async () => {
-    if (!user) return;
+    if (!user || !accessToken) return;
+
+    setIsLoadingHistory(true);
     try {
-      const res = await fetch(`${BASE_URL}/api/reports/user/${user.id}`, {
-        headers: {
-          Authorization: `Bearer ${userToken}`,
-        },
-      });
-      const data = await res.json();
+      const data = await apiRequest(`/api/reports/user/${user.id}`);
       setHistory(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error(err);
+      console.error("Fetch history error:", err.response?.data || err);
       setHistory([]);
+      Alert.alert(
+        "Error",
+        err.response?.status === 403
+          ? "You are not authorized to view report history."
+          : "Failed to fetch report history."
+      );
+    } finally {
+      setIsLoadingHistory(false);
     }
   };
 
-  useEffect(() => {
-    if (activeTab === "history") fetchHistory();
-  }, [activeTab, user]);
+  const fetchAllReports = async () => {
+    if (!accessToken || user?.role !== "admin") return;
+
+    setIsLoadingHistory(true);
+    try {
+      const data = await apiRequest("/api/reports/all"); // Admin sees all reports
+      setHistory(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Fetch all reports error:", err.response?.data || err);
+      Alert.alert(
+        "Error",
+        err.response?.status === 403
+          ? "You are not authorized to view all reports."
+          : "Failed to fetch reports."
+      );
+      setHistory([]);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
 
   const handleSelectBus = (busID) => {
     setSelectedBus(busID);
@@ -112,67 +143,112 @@ const ReportScreen = () => {
   };
 
   const handleSubmit = async () => {
-    if (!description || !user) {
-      Alert.alert("Error", "Please provide a description");
+    if (!accessToken) {
+      Alert.alert("Error", "You are not logged in.");
       return;
     }
-    
-    setIsSubmitting(true);
 
+    if (!description.trim()) {
+      Alert.alert("Error", "Please provide a description.");
+      return;
+    }
+
+    if ((reportType === "bus" || reportType === "driver") && !selectedBus) {
+      Alert.alert("Error", "Please select a bus.");
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      await fetch(`${BASE_URL}/api/reports`, {
+      await apiRequest("/api/reports", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${userToken}`,
-        },
-        body: JSON.stringify({
-          userId: user._id,
+        data: {
           reportType,
           description,
           busID: selectedBus || null,
           stopName: selectedStop || null,
-        }),
+        },
       });
+
       setIsSuccessModalVisible(true);
       setDescription("");
       setSelectedBus("");
       setSelectedStop("");
       setStopList([]);
     } catch (err) {
-      console.error(err);
+      console.error("Submit report error:", err.response?.data || err);
       Alert.alert("Error", "Failed to submit report. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const replyToReport = async (reportId) => {
+    if (!replyText.trim()) {
+      Alert.alert("Error", "Response cannot be empty.");
+      return;
+    }
+
+    try {
+      await apiRequest(`/api/reports/${reportId}/reply`, {
+        method: "POST",
+        data: { response: replyText },
+      });
+      Alert.alert("Success", "Response sent!");
+      setReplyText("");
+      fetchAllReports(); // refresh history after reply
+    } catch (err) {
+      console.error("Reply error:", err.response?.data || err);
+      Alert.alert("Error", "Failed to send response.");
+    }
+  };
+
+  // ------------------------ Helpers ------------------------
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case "resolved": return "#4CAF50";
-      case "in progress": return "#FF9800";
-      case "closed": return "#9E9E9E";
-      default: return "#2196F3";
+      case "resolved":
+        return "#4CAF50";
+      case "in progress":
+        return "#FF9800";
+      case "closed":
+        return "#9E9E9E";
+      default:
+        return "#2196F3";
     }
   };
 
   const getReportTypeIcon = (type) => {
     switch (type) {
-      case "general": return "chatbubble-outline";
-      case "bus": return "bus-outline";
-      case "safety": return "shield-checkmark-outline";
-      case "driver": return "person-outline";
-      default: return "document-text-outline";
+      case "general":
+        return "chatbubble-outline";
+      case "bus":
+        return "bus-outline";
+      case "safety":
+        return "shield-checkmark-outline";
+      case "driver":
+        return "person-outline";
+      default:
+        return "document-text-outline";
     }
   };
 
+  // ------------------------ Render ------------------------
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#6C63FF" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Report an Issue</Text>
         <Text style={styles.headerSubtitle}>
-          {activeTab === "new" 
-            ? "Help us improve our service" 
+          {activeTab === "new"
+            ? "Help us improve our service"
             : "Your report history"}
         </Text>
       </View>
@@ -185,10 +261,10 @@ const ReportScreen = () => {
             style={[styles.tabButton, activeTab === tab && styles.activeTab]}
             onPress={() => setActiveTab(tab)}
           >
-            <Ionicons 
-              name={tab === "new" ? "add-circle-outline" : "time-outline"} 
-              size={wp("5%")} 
-              color={activeTab === tab ? "#fff" : "#6C63FF"} 
+            <Ionicons
+              name={tab === "new" ? "add-circle-outline" : "time-outline"}
+              size={wp("5%")}
+              color={activeTab === tab ? "#fff" : "#6C63FF"}
             />
             <Text
               style={[
@@ -202,17 +278,18 @@ const ReportScreen = () => {
         ))}
       </View>
 
-      <KeyboardAvoidingView 
-        style={styles.keyboardAvoid}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Animated.View 
+          <Animated.View
             style={[
               styles.animatedContainer,
-              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
             ]}
           >
+            {/* New Report Form */}
             {activeTab === "new" ? (
               <View style={styles.formContainer}>
                 {/* Report Type */}
@@ -231,7 +308,7 @@ const ReportScreen = () => {
                   </Picker>
                 </View>
 
-                {/* Bus Selector */}
+                {/* Bus Selection */}
                 {(reportType === "bus" || reportType === "driver") && (
                   <>
                     <Text style={styles.sectionTitle}>Select Bus</Text>
@@ -244,17 +321,23 @@ const ReportScreen = () => {
                       >
                         <Picker.Item label="Select a bus" value="" />
                         {busList.map((bus) => (
-                          <Picker.Item key={bus.id} label={bus.name} value={bus.id} />
+                          <Picker.Item
+                            key={bus.id}
+                            label={bus.name}
+                            value={bus.id}
+                          />
                         ))}
                       </Picker>
                     </View>
                   </>
                 )}
 
-                {/* Stop Selector */}
+                {/* Stop Selection */}
                 {stopList.length > 0 && (
                   <>
-                    <Text style={styles.sectionTitle}>Select Stop (Optional)</Text>
+                    <Text style={styles.sectionTitle}>
+                      Select Stop (Optional)
+                    </Text>
                     <View style={styles.pickerContainer}>
                       <Picker
                         selectedValue={selectedStop}
@@ -286,13 +369,16 @@ const ReportScreen = () => {
                     value={description}
                     onChangeText={setDescription}
                     placeholderTextColor="#999"
+                    maxLength={500}
                   />
                   <View style={styles.charCount}>
-                    <Text style={styles.charCountText}>{description.length}/500</Text>
+                    <Text style={styles.charCountText}>
+                      {description.length}/500
+                    </Text>
                   </View>
                 </View>
 
-                {/* Submit */}
+                {/* Submit Button */}
                 <TouchableOpacity
                   style={[
                     styles.submitButton,
@@ -303,9 +389,13 @@ const ReportScreen = () => {
                 >
                   <View style={styles.solidButton}>
                     {isSubmitting ? (
-                      <Ionicons name="ios-hourglass" size={wp("5%")} color="#fff" />
+                      <ActivityIndicator size="small" color="#fff" />
                     ) : (
-                      <Ionicons name="paper-plane-outline" size={wp("5%")} color="#fff" />
+                      <Ionicons
+                        name="paper-plane-outline"
+                        size={wp("5%")}
+                        color="#fff"
+                      />
                     )}
                     <Text style={styles.submitButtonText}>
                       {isSubmitting ? "Submitting..." : "Submit Report"}
@@ -314,8 +404,15 @@ const ReportScreen = () => {
                 </TouchableOpacity>
               </View>
             ) : (
+              /* History Tab */
               <View style={styles.historyContainer}>
-                {history.length === 0 ? (
+                {isLoadingHistory ? (
+                  <ActivityIndicator
+                    size="large"
+                    color="#6C63FF"
+                    style={{ marginTop: hp("10%") }}
+                  />
+                ) : history.length === 0 ? (
                   <View style={styles.emptyHistory}>
                     <Ionicons
                       name="document-text-outline"
@@ -334,17 +431,31 @@ const ReportScreen = () => {
                     <View key={report._id} style={styles.reportCard}>
                       <View style={styles.reportHeader}>
                         <View style={styles.reportTypeContainer}>
-                          <Ionicons 
-                            name={getReportTypeIcon(report.reportType)} 
-                            size={wp("5%")} 
-                            color="#6C63FF" 
+                          <Ionicons
+                            name={getReportTypeIcon(report.reportType)}
+                            size={wp("5%")}
+                            color="#6C63FF"
                           />
                           <Text style={styles.reportType}>
-                            {report.reportType.charAt(0).toUpperCase() + report.reportType.slice(1)}
+                            {report.reportType.charAt(0).toUpperCase() +
+                              report.reportType.slice(1)}
                           </Text>
                         </View>
-                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(report.status) + '20' }]}>
-                          <Text style={[styles.statusText, { color: getStatusColor(report.status) }]}>
+                        <View
+                          style={[
+                            styles.statusBadge,
+                            {
+                              backgroundColor:
+                                getStatusColor(report.status) + "20",
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.statusText,
+                              { color: getStatusColor(report.status) },
+                            ]}
+                          >
                             {report.status || "Submitted"}
                           </Text>
                         </View>
@@ -353,21 +464,52 @@ const ReportScreen = () => {
                         {report.description}
                       </Text>
                       <Text style={styles.reportDate}>
-                        {new Date(report.submittedAt).toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'short', 
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                        {new Date(report.createdAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )}
                       </Text>
                       {report.response && (
                         <View style={styles.responseContainer}>
                           <View style={styles.responseHeader}>
-                            <Ionicons name="checkmark-done-circle" size={wp("4%")} color="#4CAF50" />
-                            <Text style={styles.responseTitle}>Admin Response:</Text>
+                            <Ionicons
+                              name="checkmark-done-circle"
+                              size={wp("4%")}
+                              color="#4CAF50"
+                            />
+                            <Text style={styles.responseTitle}>
+                              Admin Response:
+                            </Text>
                           </View>
-                          <Text style={styles.responseText}>{report.response}</Text>
+                          <Text style={styles.responseText}>
+                            {report.response}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Admin reply input */}
+                      {user?.role === "admin" && !report.response && (
+                        <View style={{ marginTop: hp("1%") }}>
+                          <TextInput
+                            placeholder="Write your response..."
+                            value={replyText}
+                            onChangeText={setReplyText}
+                            style={styles.descriptionInput}
+                          />
+                          <TouchableOpacity
+                            style={styles.submitButton}
+                            onPress={() => replyToReport(report._id)}
+                          >
+                            <Text style={styles.submitButtonText}>
+                              Send Response
+                            </Text>
+                          </TouchableOpacity>
                         </View>
                       )}
                     </View>
@@ -392,7 +534,8 @@ const ReportScreen = () => {
             </View>
             <Text style={styles.modalTitle}>Report Submitted</Text>
             <Text style={styles.modalText}>
-              Thank you for your feedback! We'll review your report and take appropriate action.
+              Thank you for your feedback! We'll review your report and take
+              appropriate action.
             </Text>
             <TouchableOpacity
               style={styles.modalButton}
@@ -407,11 +550,9 @@ const ReportScreen = () => {
   );
 };
 
+// ------------------------ Styles ------------------------
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#f8f9fa",
-  },
+  safeArea: { flex: 1, backgroundColor: "#f8f9fa" },
   header: {
     backgroundColor: "#6C63FF",
     paddingHorizontal: wp("5%"),
@@ -426,21 +567,14 @@ const styles = StyleSheet.create({
     color: "#fff",
     marginBottom: hp("0.5%"),
   },
-  headerSubtitle: {
-    fontSize: wp("4%"),
-    color: "rgba(255, 255, 255, 0.8)",
-  },
-  keyboardAvoid: {
-    flex: 1,
-  },
-  animatedContainer: {
-    flex: 1,
-  },
+  headerSubtitle: { fontSize: wp("4%"), color: "rgba(255, 255, 255, 0.8)" },
+  keyboardAvoid: { flex: 1 },
+  animatedContainer: { flex: 1 },
   tabContainer: {
     flexDirection: "row",
     backgroundColor: "#fff",
     marginHorizontal: wp("4%"),
-    marginTop: hp("-2%"), // Positioned slightly over the header
+    marginTop: hp("-2%"),
     borderRadius: wp("3%"),
     overflow: "hidden",
     shadowColor: "#000",
@@ -448,7 +582,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    zIndex: 10, // Ensure it appears above other content
+    zIndex: 10,
   },
   tabButton: {
     flex: 1,
@@ -458,25 +592,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: wp("2%"),
   },
-  activeTab: {
-    backgroundColor: "#6C63FF",
-  },
-  tabText: {
-    fontSize: wp("3.8%"),
-    color: "#666",
-    fontWeight: "600",
-  },
-  activeTabText: {
-    color: "#fff",
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: hp("4%"),
-  },
-  formContainer: {
-    paddingHorizontal: wp("5%"),
-    paddingTop: hp("3%"),
-  },
+  activeTab: { backgroundColor: "#6C63FF" },
+  tabText: { fontSize: wp("3.8%"), color: "#666", fontWeight: "600" },
+  activeTabText: { color: "#fff" },
+  scrollContent: { flexGrow: 1, paddingBottom: hp("4%") },
+  formContainer: { paddingHorizontal: wp("5%"), paddingTop: hp("3%") },
   sectionTitle: {
     fontSize: wp("4.2%"),
     fontWeight: "600",
@@ -491,19 +611,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "#fff",
     marginBottom: hp("1%"),
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
-  picker: {
-    width: "100%",
-    color: "#333",
-  },
-  inputContainer: {
-    position: "relative",
-  },
+  picker: { width: "100%", color: "#333" },
+  inputContainer: { position: "relative" },
   descriptionInput: {
     borderWidth: 1,
     borderColor: "#ddd",
@@ -515,30 +625,13 @@ const styles = StyleSheet.create({
     color: "#333",
     minHeight: hp("15%"),
     marginBottom: hp("2%"),
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
-  charCount: {
-    position: "absolute",
-    bottom: hp("3%"),
-    right: wp("4%"),
-  },
-  charCountText: {
-    fontSize: wp("3.5%"),
-    color: "#999",
-  },
+  charCount: { position: "absolute", bottom: hp("3%"), right: wp("4%") },
+  charCountText: { fontSize: wp("3.5%"), color: "#999" },
   submitButton: {
     borderRadius: wp("2.5%"),
     overflow: "hidden",
     marginTop: hp("2%"),
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
   },
   solidButton: {
     flexDirection: "row",
@@ -548,28 +641,23 @@ const styles = StyleSheet.create({
     gap: wp("2%"),
     backgroundColor: "#6C63FF",
   },
-  submitButtonDisabled: {
-    opacity: 0.7,
-  },
-  submitButtonText: {
-    color: "#fff",
-    fontSize: wp("4.2%"),
-    fontWeight: "600",
-  },
-  historyContainer: {
-    paddingHorizontal: wp("4%"),
-    paddingTop: hp("2%"),
-  },
+  submitButtonDisabled: { opacity: 0.7 },
+  submitButtonText: { color: "#fff", fontSize: wp("4.2%"), fontWeight: "600" },
+  historyContainer: { paddingHorizontal: wp("4%"), paddingTop: hp("2%") },
   reportCard: {
     backgroundColor: "#fff",
     borderRadius: wp("3%"),
     padding: wp("4%"),
     marginBottom: hp("2%"),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.37,
+    shadowRadius: 7.49,
+
+    elevation: 12,
   },
   reportHeader: {
     flexDirection: "row",
@@ -582,31 +670,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: wp("2%"),
   },
-  reportType: {
-    fontSize: wp("4%"),
-    fontWeight: "600",
-    color: "#333",
-  },
+  reportType: { fontSize: wp("4%"), fontWeight: "600", color: "#333" },
   statusBadge: {
     paddingHorizontal: wp("3%"),
     paddingVertical: hp("0.6%"),
     borderRadius: wp("2%"),
   },
-  statusText: {
-    fontSize: wp("3.2%"),
-    fontWeight: "600",
-  },
+  statusText: { fontSize: wp("3.2%"), fontWeight: "600" },
   reportDescription: {
     fontSize: wp("4%"),
     color: "#555",
     marginBottom: hp("1%"),
     lineHeight: hp("2.8%"),
   },
-  reportDate: {
-    fontSize: wp("3.5%"),
-    color: "#888",
-    marginBottom: hp("1.5%"),
-  },
+  reportDate: { fontSize: wp("3.5%"), color: "#888", marginBottom: hp("1.5%") },
   responseContainer: {
     borderTopWidth: 1,
     borderTopColor: "#eee",
@@ -617,34 +694,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: wp("2%"),
-    marginBottom: hp("1%"),
+    marginBottom: hp("0.5%"),
   },
-  responseTitle: {
-    fontSize: wp("3.8%"),
-    fontWeight: "600",
-    color: "#4CAF50",
-  },
-  responseText: {
-    fontSize: wp("3.8%"),
-    color: "#555",
-    lineHeight: hp("2.8%"),
-  },
+  responseTitle: { fontSize: wp("3.8%"), fontWeight: "600", color: "#4CAF50" },
+  responseText: { fontSize: wp("3.8%"), color: "#555" },
   emptyHistory: {
-    alignItems: "center",
     justifyContent: "center",
-    paddingVertical: hp("15%"),
+    alignItems: "center",
+    marginTop: hp("10%"),
   },
   emptyHistoryText: {
     fontSize: wp("4.5%"),
-    color: "#999",
-    marginTop: hp("2%"),
     fontWeight: "600",
+    marginTop: hp("2%"),
+    color: "#999",
   },
   emptyHistorySubtext: {
-    fontSize: wp("4%"),
+    fontSize: wp("3.8%"),
     color: "#bbb",
-    marginTop: hp("1%"),
-    textAlign: "center",
+    marginTop: hp("0.5%"),
   },
   modalOverlay: {
     flex: 1,
@@ -653,47 +721,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalContainer: {
+    width: wp("80%"),
     backgroundColor: "#fff",
-    borderRadius: wp("5%"),
-    padding: wp("6%"),
-    width: wp("85%"),
+    borderRadius: wp("3%"),
+    padding: wp("5%"),
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
   },
-  modalIconContainer: {
-    marginBottom: hp("2%"),
-  },
+  modalIconContainer: { marginBottom: hp("2%") },
   modalTitle: {
-    fontSize: wp("5.5%"),
+    fontSize: wp("5%"),
     fontWeight: "700",
+    marginBottom: hp("1%"),
     color: "#333",
-    marginBottom: hp("1.5%"),
-    textAlign: "center",
   },
   modalText: {
     fontSize: wp("4%"),
-    color: "#666",
     textAlign: "center",
+    color: "#555",
     marginBottom: hp("3%"),
-    lineHeight: hp("3%"),
   },
   modalButton: {
     backgroundColor: "#6C63FF",
-    paddingHorizontal: wp("8%"),
-    paddingVertical: hp("1.8%"),
-    borderRadius: wp("2.5%"),
-    width: "100%",
-    alignItems: "center",
+    borderRadius: wp("2%"),
+    paddingHorizontal: wp("6%"),
+    paddingVertical: hp("1.5%"),
   },
-  modalButtonText: {
-    color: "#fff",
-    fontSize: wp("4.2%"),
-    fontWeight: "600",
-  },
+  modalButtonText: { color: "#fff", fontWeight: "600", fontSize: wp("4%") },
 });
 
 export default ReportScreen;

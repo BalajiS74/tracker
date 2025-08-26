@@ -5,18 +5,12 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Toast from "react-native-toast-message";
 import { ActivityIndicator, View } from "react-native";
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
-import {
-  widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from "react-native-responsive-screen";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 
 import { AuthProvider, AuthContext } from "./src/context/AuthContext";
 import { BusProvider } from "./src/context/BusContext";
-import CustomSplashScreen from "./src/screens/CustomSplashScreen"; // 👈 import splash
+import CustomSplashScreen from "./src/screens/CustomSplashScreen";
 
 // Lazy load screens
 const HomeScreen = React.lazy(() => import("./src/screens/HomeScreen"));
@@ -24,23 +18,17 @@ const Track = React.lazy(() => import("./src/screens/Track"));
 const BusDetails = React.lazy(() => import("./src/screens/BusDetails"));
 const LoginScreen = React.lazy(() => import("./src/screens/LoginScreen"));
 const Profile = React.lazy(() => import("./src/screens/Profile"));
-const HelpSupportScreen = React.lazy(() =>
-  import("./src/screens/HelpSupportScreen")
-);
-const TermsPrivacyScreen = React.lazy(() =>
-  import("./src/screens/TermsPrivacyScreen")
-);
+const HelpSupportScreen = React.lazy(() => import("./src/screens/HelpSupportScreen"));
+const TermsPrivacyScreen = React.lazy(() => import("./src/screens/TermsPrivacyScreen"));
 const SafetytipsScreen = React.lazy(() => import("./src/screens/SafetyTips"));
 const ReportScreen = React.lazy(() => import("./src/screens/ReportScreen"));
 const AboutAppScreen = React.lazy(() => import("./src/screens/AboutAppScreen"));
-const AnnouncementPage = React.lazy(() =>
-  import("./src/screens/AnnouncementPage")
-);
+const AnnouncementPage = React.lazy(() => import("./src/screens/AnnouncementPage"));
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// ✅ same tab styles as before
+// Tab bar styles
 const tabBarStyle = {
   backgroundColor: "#ffffff",
   borderTopLeftRadius: wp("5%"),
@@ -51,21 +39,12 @@ const tabBarStyle = {
   shadowRadius: 5,
   elevation: 10,
 };
+const tabBarLabelStyle = { fontSize: wp("3%"), fontWeight: "600" };
 
-const tabBarLabelStyle = {
-  fontSize: wp("3%"),
-  fontWeight: "600",
-};
-
+// Memoized components
 const MemoHomeScreen = React.memo(HomeScreen);
 const MemoTrack = React.memo(Track);
 const MemoProfile = React.memo(Profile);
-const MemoHelpSupport = React.memo(HelpSupportScreen);
-const MemoTermsPrivacy = React.memo(TermsPrivacyScreen);
-const MemoSafetytipsScreen = React.memo(SafetytipsScreen);
-const MemoReportScreen = React.memo(ReportScreen);
-const MemoAboutAppScreen = React.memo(AboutAppScreen);
-const MemoAnnouncementPage = React.memo(AnnouncementPage);
 
 function MainTabs() {
   const insets = useSafeAreaInsets();
@@ -74,13 +53,10 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color }) => {
-          let iconName;
-          if (route.name === "Home")
-            iconName = focused ? "home" : "home-outline";
-          else if (route.name === "Track")
-            iconName = focused ? "location" : "location-outline";
-          else if (route.name === "Profile")
-            iconName = focused ? "person-circle" : "person-circle-outline";
+          let iconName = "home";
+          if (route.name === "Home") iconName = focused ? "home" : "home-outline";
+          else if (route.name === "Track") iconName = focused ? "location" : "location-outline";
+          else if (route.name === "Profile") iconName = focused ? "person-circle" : "person-circle-outline";
           return <Ionicons name={iconName} size={24} color={color} />;
         },
         tabBarActiveTintColor: "#4b0082",
@@ -103,7 +79,8 @@ function MainTabs() {
 }
 
 function MainStack() {
-  const { userToken, isLoading, isAdmin } = useContext(AuthContext);
+  const { accessToken, role, isLoading } = useContext(AuthContext);
+  const isAdmin = role === "admin";
 
   if (isLoading) {
     return (
@@ -117,60 +94,29 @@ function MainStack() {
     <NavigationContainer>
       <Suspense
         fallback={
-          <ActivityIndicator size="large" color="#4b0082" style={{ flex: 1 }} />
+          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+            <ActivityIndicator size="large" color="#4b0082" />
+          </View>
         }
       >
         <Stack.Navigator>
-          {userToken === null ? (
-            <Stack.Screen
-              name="Login"
-              component={LoginScreen}
-              options={{ headerShown: false }}
-            />
+          {!accessToken ? (
+            <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
           ) : (
             <>
-              <Stack.Screen
-                name="MainTabs"
-                component={MainTabs}
-                options={{ headerShown: false }}
-              />
+              <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
               <Stack.Screen
                 name="BusDetails"
-                children={(props) => (
-                  <BusDetails {...props} isAdmin={isAdmin} />
-                )}
-                options={{ title: "Bus Details", headerShown: false }}
+                component={BusDetails}
+                initialParams={{ isAdmin }}
+                options={{ headerShown: false }}
               />
-              <Stack.Screen
-                name="HelpSupport"
-                component={MemoHelpSupport}
-                options={{ title: "Help & Support", headerShown: false }}
-              />
-              <Stack.Screen
-                name="TermsPrivacy"
-                component={MemoTermsPrivacy}
-                options={{ title: "Terms & Privacy", headerShown: false }}
-              />
-              <Stack.Screen
-                name="Safetytips"
-                component={MemoSafetytipsScreen}
-                options={{ title: "Safetytips", headerShown: false }}
-              />
-              <Stack.Screen
-                name="ReportScreen"
-                component={MemoReportScreen}
-                options={{ title: "ReportScreen", headerShown: false }}
-              />
-              <Stack.Screen
-                name="AboutAppScreen"
-                component={MemoAboutAppScreen}
-                options={{ title: "AboutAppScreen", headerShown: false }}
-              />
-              <Stack.Screen
-                name="AnnouncementPage"
-                component={MemoAnnouncementPage}
-                options={{ title: "MemoAnnouncementPage", headerShown: false }}
-              />
+              <Stack.Screen name="HelpSupport" component={HelpSupportScreen} options={{ headerShown: false }} />
+              <Stack.Screen name="TermsPrivacy" component={TermsPrivacyScreen} options={{ headerShown: false }} />
+              <Stack.Screen name="Safetytips" component={SafetytipsScreen} options={{ headerShown: false }} />
+              <Stack.Screen name="ReportScreen" component={ReportScreen} options={{ headerShown: false }} />
+              <Stack.Screen name="AboutAppScreen" component={AboutAppScreen} options={{ headerShown: false }} />
+              <Stack.Screen name="AnnouncementPage" component={AnnouncementPage} options={{ headerShown: false }} />
             </>
           )}
         </Stack.Navigator>
@@ -180,11 +126,9 @@ function MainStack() {
 }
 
 export default function App() {
- const [isSplashDone, setIsSplashDone] = useState(false);
+  const [isSplashDone, setIsSplashDone] = useState(false);
 
-  if (!isSplashDone) {
-    return <CustomSplashScreen onFinish={() => setIsSplashDone(true)} />;
-  }
+  if (!isSplashDone) return <CustomSplashScreen onFinish={() => setIsSplashDone(true)} />;
 
   return (
     <SafeAreaProvider>

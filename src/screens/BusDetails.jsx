@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback, memo } from "react";
+import { useEffect, useState, useRef, useCallback, memo, useMemo } from "react";
 import {
   View,
   Text,
@@ -10,8 +10,6 @@ import {
   Easing,
   Dimensions,
   Alert,
-  StatusBar,
-  Platform,
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -37,16 +35,67 @@ const getRouteData = (busID) => {
   }
 };
 
-const { width, height } = Dimensions.get("window");
-const scale = width / 375; // base iPhone width
-
+const { width } = Dimensions.get("window");
+const scale = width / 375;
 function normalize(size) {
   return Math.round(scale * size);
 }
 
-// stop card
+// ---------- Helpers ----------
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371e3;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const φ1 = toRad(lat1);
+  const φ2 = toRad(lat2);
+  const Δφ = toRad(lat2 - lat1);
+  const Δλ = toRad(lon2 - lon1);
+  const a =
+    Math.sin(Δφ / 2) ** 2 +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); // meters
+}
+
+function isEveningNow() {
+  const now = new Date();
+  const h = now.getHours();
+  const m = now.getMinutes();
+  // After 3:55 PM OR before 5:00 AM
+  if (h > 15 || (h === 15 && m >= 55)) return true;
+  if (h < 5) return true;
+  return false;
+}
+
+// Rebuild distances + nextStop for reversed list
+function reverseRouteWithDistances(stops) {
+  const reversed = [...stops].reverse();
+
+  let cumulative = 0;
+  const newStops = reversed.map((stop, idx) => {
+    let distanceToNext = 0;
+    let nextStopName = null;
+
+    if (idx < reversed.length - 1) {
+      const next = reversed[idx + 1];
+      distanceToNext = calculateDistance(stop.lat, stop.lng, next.lat, next.lng);
+      nextStopName = next.name;
+    }
+
+    cumulative += distanceToNext;
+
+    return {
+      ...stop,
+      nextStop: nextStopName,
+      to_next_distance_km: (distanceToNext / 1000).toFixed(3),
+      cumulative_km_to_next: (cumulative / 1000).toFixed(3),
+    };
+  });
+
+  return newStops;
+}
+
+// ---------- Stop row (memoized) ----------
 const MemoStopItem = memo(
-  ({ item, index, currentStopIdx, routeData, blinkAnim, pulseAnim }) => {
+  ({ item, index, currentStopIdx, stopsLength, blinkAnim, pulseAnim }) => {
     const isCurrent = index === currentStopIdx;
     return (
       <View style={[styles.stopRow, isCurrent && styles.activeStopRow]}>
@@ -56,10 +105,8 @@ const MemoStopItem = memo(
               style={[
                 styles.dot,
                 styles.currentDot,
-                {
-                  opacity: blinkAnim,
-                  transform: [{ scale: pulseAnim }],
-                },
+                blinkAnim && { opacity: blinkAnim },
+                pulseAnim && { transform: [{ scale: pulseAnim }] },
               ]}
             />
           ) : (
@@ -70,7 +117,7 @@ const MemoStopItem = memo(
               ]}
             />
           )}
-          {index !== routeData.stops.length - 1 && (
+          {index !== stopsLength - 1 && (
             <View
               style={[
                 styles.line,
@@ -79,12 +126,16 @@ const MemoStopItem = memo(
             />
           )}
         </View>
+
         <View style={styles.stopInfo}>
           <Text style={[styles.stopName, isCurrent && styles.activeStopName]}>
             {item.name}
           </Text>
-          <Text style={styles.stopDistance}>{`${item.cumulative_km_to_next} km`}</Text>
+          <Text style={styles.stopDistance}>
+            {`${item?.cumulative_km_to_next ?? "--"} km`}
+          </Text>
         </View>
+
         {isCurrent && (
           <View style={styles.currentStopBadge}>
             <Ionicons name="location" size={12} color="#fff" />
@@ -96,6 +147,7 @@ const MemoStopItem = memo(
   }
 );
 
+// ---------- Main ----------
 const BusDetails = ({ route }) => {
   const { busID } = route.params;
   const [routeData, setRouteData] = useState(null);
@@ -108,22 +160,32 @@ const BusDetails = ({ route }) => {
   const [activeTab, setActiveTab] = useState("route");
   const [userLocation, setUserLocation] = useState(null);
 
-  // Estimated Arrival Time (to next stop)
   const [etaToNextStop, setEtaToNextStop] = useState("--");
-  // Stop ETA Countdown
   const [countdown, setCountdown] = useState("--");
-  // User's Nearest Stop
   const [nearestUserStop, setNearestUserStop] = useState(null);
-  // Notifications
   const [notified, setNotified] = useState(false);
 
   const blinkAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  const { buses } = useBus(); // ✅ access buses from context
-
+  const { buses } = useBus();
   const busData = buses.find((bus) => bus.busid === busID);
-  
+
+  // Load static route data
+  useEffect(() => {
+    const data = getRouteData(busID);
+    setRouteData(data);
+  }, [busID]);
+
+  // Build the EXACT list we render (forward or reversed)
+  const displayedStops = useMemo(() => {
+    if (!routeData?.stops) return [];
+    return isEveningNow()
+      ? reverseRouteWithDistances(routeData.stops)
+      : routeData.stops;
+  }, [routeData]);
+
+  // Animations (don’t restart on every index change)
   useEffect(() => {
     if (activeTab !== "route") return;
 
@@ -168,62 +230,60 @@ const BusDetails = ({ route }) => {
       blink.stop();
       pulse.stop();
     };
-  }, [activeTab, blinkAnim, pulseAnim, currentStopIdx]);
+  }, [activeTab, blinkAnim, pulseAnim]);
 
-  useEffect(() => {
-    const data = getRouteData(busID);
-    setRouteData(data);
-  }, [busID]);
+  // Compute status before any effect that uses it
+  const computedSpeed = isOnline ? busInfo?.speed ?? 0 : 0.0;
+  const status = !isOnline ? "Parked" : computedSpeed <= 2 ? "Stopped" : "Moving";
 
-  // 1. Wrap the fetch function with useCallback
+  // Fetch current bus location — use displayedStops (render order!)
   const fetchCurrentLocation = useCallback(async () => {
-    if (!routeData || !busID ) return;
+    if (!busID || displayedStops.length === 0) return;
 
-    const firebaseURL = ` https://bus-tracking-school-92dd9-default-rtdb.asia-southeast1.firebasedatabase.app/gps/${busID}.json`;
+    const firebaseURL = `https://bus-tracking-school-92dd9-default-rtdb.asia-southeast1.firebasedatabase.app/gps/${busID}.json`;
 
     try {
       const response = await axios.get(firebaseURL);
       const data = response.data;
       setBusInfo(data);
-            
+
       const now = Date.now();
       const lastSeen = data?.lastSeen ? data.lastSeen * 1000 : 0;
       const isRecent = now - lastSeen <= 30000;
       const isBusOnline = data?.status === true && isRecent;
 
       setBusOnlineStatus(isBusOnline);
+
       if (!data?.latitude || !data?.longitude || !isBusOnline) {
         setCurrentStopIdx(-1);
         setLoading(false);
         return;
       }
 
+      // Find nearest in the SAME order as rendered
       let minDist = Infinity;
       let nearestIdx = -1;
 
-      routeData.stops.forEach((stop, idx) => {
-        const d = calculateDistance(
-          data.latitude,
-          data.longitude,
-          stop.lat,
-          stop.lng
-        );
+      displayedStops.forEach((stop, idx) => {
+        const d = calculateDistance(data.latitude, data.longitude, stop.lat, stop.lng);
         if (d < minDist) {
           minDist = d;
           nearestIdx = idx;
         }
       });
 
+      // Update indices consistently
       if (minDist < 300 && nearestIdx > lastConfirmedStopIdx) {
         setLastConfirmedStopIdx(nearestIdx);
+        setCurrentStopIdx(nearestIdx);
+      } else {
+        setCurrentStopIdx(nearestIdx);
       }
 
-      setCurrentStopIdx(lastConfirmedStopIdx);
-
-      // ✅ Set next stop using nextStop field from current stop
-      const currentStop = routeData.stops[lastConfirmedStopIdx];
-      const next = currentStop?.nextStop || null;
-      setUpcommingStop(next);
+      // Set next stop (in displayed order)
+      const currentStop = displayedStops[nearestIdx];
+      const next = displayedStops[nearestIdx + 1] ?? null;
+      setUpcommingStop(next?.name ?? null);
 
       setLoading(false);
     } catch (e) {
@@ -231,15 +291,15 @@ const BusDetails = ({ route }) => {
       setCurrentStopIdx(-1);
       setLoading(false);
     }
-  }, [routeData, busID, lastConfirmedStopIdx]);
+  }, [busID, displayedStops, lastConfirmedStopIdx]);
 
   useEffect(() => {
-    fetchCurrentLocation(); // call once
-    const interval = setInterval(fetchCurrentLocation, 5000); // every 5s
+    fetchCurrentLocation();
+    const interval = setInterval(fetchCurrentLocation, 5000);
     return () => clearInterval(interval);
-  }, [fetchCurrentLocation]); // ✅ correct dependency
+  }, [fetchCurrentLocation]);
 
-  // get the user location and ask the permmission
+  // user location
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -252,49 +312,35 @@ const BusDetails = ({ route }) => {
     })();
   }, []);
 
-  function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371e3;
-    const φ1 = (lat1 * Math.PI) / 180;
-    const φ2 = (lat2 * Math.PI) / 180;
-    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(Δφ / 2) ** 2 +
-      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
-
-  // speak the bus stop name
+  // Speak next stop (use displayed order)
   useEffect(() => {
-    if (!routeData || lastConfirmedStopIdx < 0) return;
-
-    const stop = routeData.stops[lastConfirmedStopIdx];
+    if (currentStopIdx < 0 || displayedStops.length === 0) return;
+    const stop = displayedStops[currentStopIdx];
     if (!stop) return;
 
-    // Only announce if bus is NOT parked
     if (status !== "Parked") {
-      Speech.speak(`Next stop is  ${stop.name}`);
+      Speech.speak(`Next stop is ${stop.name}`);
     } else {
-      Speech.stop(); // Optional: stop any ongoing speech if parked
+      Speech.stop();
     }
-  }, [lastConfirmedStopIdx, status]);
+  }, [currentStopIdx, status, displayedStops]);
 
-  // Calculate ETA and Countdown for next stop
+  // ETA + countdown (use displayed order)
   useEffect(() => {
     if (
       busInfo?.speed > 0 &&
-      currentStopIdx + 1 < routeData?.stops?.length &&
+      currentStopIdx + 1 < displayedStops.length &&
       busInfo?.latitude &&
       busInfo?.longitude
     ) {
-      const nextStop = routeData.stops[currentStopIdx + 1];
+      const nextStop = displayedStops[currentStopIdx + 1];
       const dist = calculateDistance(
         busInfo.latitude,
         busInfo.longitude,
         nextStop.lat,
         nextStop.lng
       );
-      const speedMS = (busInfo.speed * 1000) / 3600; // km/h to m/s
+      const speedMS = (busInfo.speed * 1000) / 3600;
       const etaSec = speedMS > 0 ? dist / speedMS : null;
       if (etaSec) {
         setEtaToNextStop(
@@ -309,16 +355,11 @@ const BusDetails = ({ route }) => {
       setEtaToNextStop("--");
       setCountdown("--");
     }
-  }, [busInfo, currentStopIdx, routeData]);
+  }, [busInfo, currentStopIdx, displayedStops]);
 
-  // Notifications: Alert when bus is near user's nearest stop
+  // Notifications near user stop (optional logic placeholder)
   useEffect(() => {
-    if (
-      !notified &&
-      nearestUserStop &&
-      busInfo?.latitude &&
-      busInfo?.longitude
-    ) {
+    if (!notified && nearestUserStop && busInfo?.latitude && busInfo?.longitude) {
       const dist = calculateDistance(
         busInfo.latitude,
         busInfo.longitude,
@@ -326,35 +367,32 @@ const BusDetails = ({ route }) => {
         nearestUserStop.lng
       );
       if (dist < 100) {
-        Alert.alert(
-          "Bus Alert",
-          ` Bus is arriving at your nearest stop: ${nearestUserStop.name}`
-        );
+        Alert.alert("Bus Alert", ` Bus is arriving at your nearest stop: ${nearestUserStop.name}`);
         setNotified(true);
       }
     }
   }, [busInfo, nearestUserStop, notified]);
 
-  // handel route tap
+  // Tabs
   const handleTabRoute = useCallback(() => {
     setActiveTab("route");
-    fetchCurrentLocation(); // ✅ this works now
+    fetchCurrentLocation();
   }, [fetchCurrentLocation]);
   const handleTabDetails = useCallback(() => setActiveTab("details"), []);
 
-  // stop card render
+  // Render stop row
   const renderStopItem = useCallback(
     ({ item, index }) => (
       <MemoStopItem
         item={item}
         index={index}
         currentStopIdx={currentStopIdx}
-        routeData={routeData}
-        blinkAnim={blinkAnim}
-        pulseAnim={pulseAnim}
+        stopsLength={displayedStops.length}
+        blinkAnim={index === currentStopIdx ? blinkAnim : null}
+        pulseAnim={index === currentStopIdx ? pulseAnim : null}
       />
     ),
-    [currentStopIdx, routeData, blinkAnim, pulseAnim]
+    [currentStopIdx, displayedStops.length, blinkAnim, pulseAnim]
   );
 
   if (!routeData || loading) {
@@ -366,167 +404,85 @@ const BusDetails = ({ route }) => {
     );
   }
 
-  const computedSpeed = isOnline ? busInfo?.speed ?? 0 : 0.0;
-
-  const status = !isOnline
-    ? "Parked"
-    : computedSpeed <= 2
-    ? "Stopped"
-    : "Moving";
-
-  // Calculate distance between user and bus
-  let userBusDistance = null;
-  if (busInfo?.latitude && busInfo?.longitude && userLocation) {
-    userBusDistance = calculateDistance(
-      busInfo.latitude,
-      busInfo.longitude,
-      userLocation.latitude,
-      userLocation.longitude
-    );
-  }
-  
-  function reverseRouteWithDistances(stops) {
-    const reversed = [...stops].reverse();
-
-    let cumulative = 0;
-    const newStops = reversed.map((stop, idx) => {
-      let distanceToNext = 0;
-
-      if (idx < reversed.length - 1) {
-        distanceToNext = calculateDistance(
-          stop.lat,
-          stop.lng,
-          reversed[idx + 1].lat,
-          reversed[idx + 1].lng
-        );
-      }
-
-      cumulative += distanceToNext;
-
-      return {
-        ...stop,
-        cumulative_km_to_next: (cumulative / 1000).toFixed(2), // in km
-      };
-    });
-
-    return newStops;
-  }
-  
-  function isEvening() {
-    const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-
-    // After 3:55 PM and before 5:00 AM next day → Evening/Return Route
-    if (hours > 15 || (hours === 15 && minutes >= 55)) {
-      return true;
-    }
-
-    // From midnight until 4:59 AM → still Evening/Return Route
-    if (hours < 5) {
-      return true;
-    }
-
-    // Otherwise → Morning/Forward Route
-    return false;
-  }
-
-  const processedStops = isEvening()
-    ? reverseRouteWithDistances(routeData.stops) // evening or before 5am
-    : routeData.stops; // morning 5am onwards
-
   if (busData?.isNotAvailable) {
     return <UnavailableBusScreen busData={busData} />;
   }
 
   return (
-    <View style={styles.container} edges={["top", "left", "right"]}>
-      {/* Header with gradient background */}
-      <LinearGradient
-        colors={["#6C63FF", "#4A43C9"]}
-        style={styles.headerGradient}
-      >
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+      {/* Header */}
+      <LinearGradient colors={["#6C63FF", "#4A43C9"]} style={styles.headerGradient}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Ionicons name="bus" size={24} color="#fff" />
             <Text style={styles.headerTitle}>{busID}</Text>
           </View>
-          <View style={[styles.statusBadge, 
-            status === 'Parked' ? styles.statusParked : 
-            status === 'Stopped' ? styles.statusStopped : 
-            styles.statusMoving
-          ]}>
+          <View
+            style={[
+              styles.statusBadge,
+              status === "Parked"
+                ? styles.statusParked
+                : status === "Stopped"
+                ? styles.statusStopped
+                : styles.statusMoving,
+            ]}
+          >
             <Text style={styles.statusText}>{status}</Text>
           </View>
         </View>
       </LinearGradient>
 
-      {/* Tab Navigation */}
+      {/* Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
           onPress={handleTabRoute}
           style={[styles.tabButton, activeTab === "route" && styles.activeTab]}
         >
-          <Ionicons 
-            name="map-outline" 
-            size={20} 
-            color={activeTab === "route" ? "#6C63FF" : "#94A3B8"} 
+          <Ionicons
+            name="map-outline"
+            size={20}
+            color={activeTab === "route" ? "#6C63FF" : "#94A3B8"}
           />
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "route" && styles.activeTabText,
-            ]}
-          >
+          <Text style={[styles.tabText, activeTab === "route" && styles.activeTabText]}>
             Route
           </Text>
         </TouchableOpacity>
-        
+
         <View style={styles.tabDivider} />
-        
+
         <TouchableOpacity
           onPress={handleTabDetails}
-          style={[
-            styles.tabButton,
-            activeTab === "details" && styles.activeTab,
-          ]}
+          style={[styles.tabButton, activeTab === "details" && styles.activeTab]}
         >
-          <Ionicons 
-            name="information-circle-outline" 
-            size={20} 
-            color={activeTab === "details" ? "#6C63FF" : "#94A3B8"} 
+          <Ionicons
+            name="information-circle-outline"
+            size={20}
+            color={activeTab === "details" ? "#6C63FF" : "#94A3B8"}
           />
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "details" && styles.activeTabText,
-            ]}
-          >
+          <Text style={[styles.tabText, activeTab === "details" && styles.activeTabText]}>
             Details
           </Text>
         </TouchableOpacity>
       </View>
 
+      {/* Content */}
       <View style={styles.contentContainer}>
         {activeTab === "route" ? (
           <FlatList
-            data={processedStops}
+            data={displayedStops}
             keyExtractor={(_, idx) => idx.toString()}
             renderItem={renderStopItem}
             contentContainerStyle={styles.listContainer}
             showsVerticalScrollIndicator={false}
           />
         ) : (
-          <ScrollView 
-            style={styles.detailsContainer}
-            showsVerticalScrollIndicator={false}
-          >
+          <ScrollView style={styles.detailsContainer} showsVerticalScrollIndicator={false}>
             <View style={styles.detailCard}>
               <View style={styles.detailCardHeader}>
                 <Ionicons name="location" size={20} color="#6C63FF" />
                 <Text style={styles.detailCardTitle}>Location Details</Text>
               </View>
-              
+
               <View style={styles.detailGrid}>
                 <View style={styles.detailItem}>
                   <View style={styles.detailIconContainer}>
@@ -534,39 +490,31 @@ const BusDetails = ({ route }) => {
                   </View>
                   <View style={styles.detailContent}>
                     <Text style={styles.detailLabel}>Current Speed</Text>
-                    <Text style={styles.detailValue}>
-                      {computedSpeed.toFixed(1)} km/h
-                    </Text>
+                    <Text style={styles.detailValue}>{(computedSpeed || 0).toFixed(1)} km/h</Text>
                   </View>
                 </View>
 
-                <View style={styles.detailItem}>
+                <View className="detailItem" style={styles.detailItem}>
                   <View style={styles.detailIconContainer}>
                     <Ionicons name="navigate" size={18} color="#6C63FF" />
                   </View>
                   <View style={styles.detailContent}>
                     <Text style={styles.detailLabel}>
-                      {userBusDistance !== null && userBusDistance < 30
-                        ? "To Next Stop"
-                        : "To Your Location"}
+                      {/* heuristic label unchanged */}
+                      To Next Stop
                     </Text>
                     <Text style={styles.detailValue}>
-                      {userBusDistance !== null && userBusDistance < 30
+                      {currentStopIdx + 1 < displayedStops.length && busInfo?.latitude && busInfo?.longitude
                         ? (() => {
-                            if (currentStopIdx + 1 < routeData.stops.length && busInfo?.latitude && busInfo?.longitude) {
-                              const nextStop = routeData.stops[currentStopIdx + 1];
-                              const dist = calculateDistance(
-                                busInfo.latitude,
-                                busInfo.longitude,
-                                nextStop.lat,
-                                nextStop.lng
-                              );
-                              return `${(dist / 1000).toFixed(2)} km`;
-                            }
-                            return "--";
+                            const nextStop = displayedStops[currentStopIdx + 1];
+                            const dist = calculateDistance(
+                              busInfo.latitude,
+                              busInfo.longitude,
+                              nextStop.lat,
+                              nextStop.lng
+                            );
+                            return `${(dist / 1000).toFixed(2)} km`;
                           })()
-                        : userBusDistance !== null
-                        ? `${(userBusDistance / 1000).toFixed(2)} km`
                         : "--"}
                     </Text>
                   </View>
@@ -594,32 +542,27 @@ const BusDetails = ({ route }) => {
               </View>
             </View>
 
-            {/* Additional Info Card */}
             <View style={styles.infoCard}>
               <View style={styles.infoCardHeader}>
                 <Ionicons name="information-circle" size={20} color="#6C63FF" />
                 <Text style={styles.infoCardTitle}>Bus Information</Text>
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoText}>
-                  • Real-time tracking updates every 30 seconds
-                </Text>
+                <Text style={styles.infoText}>• Real-time tracking updates every 30 seconds</Text>
                 <Text style={styles.infoText}>
                   • ETA is calculated based on current speed and traffic conditions
                 </Text>
-                <Text style={styles.infoText}>
-                  • Distance measurements are approximate
-                </Text>
+                <Text style={styles.infoText}>• Distance measurements are approximate</Text>
               </View>
             </View>
           </ScrollView>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
-// Updated Styles
+// ---------- Styles ----------
 const styles = StyleSheet.create({
   container: {
     flex: 1,

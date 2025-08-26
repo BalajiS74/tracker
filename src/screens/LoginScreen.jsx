@@ -51,7 +51,7 @@ const LoginScreen = ({ navigation }) => {
 
     try {
       const response = await fetch(
-        "https://trakerbackend.onrender.com/api/auth/login",
+        "http://10.141.109.19:5000/api/auth/login",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -59,7 +59,6 @@ const LoginScreen = ({ navigation }) => {
         }
       );
 
-      // 🛡️ Safely read raw text first
       const text = await response.text();
       let data = {};
       try {
@@ -75,7 +74,17 @@ const LoginScreen = ({ navigation }) => {
       }
 
       if (response.ok) {
-        login(data.user, data.token, data.role, data.relatedTo); // ✅ fixed `token` reference
+        // ✅ Call AuthContext login
+        login(
+          data.user,         // user object
+          data.accessToken,   // access token
+          data.refreshToken,  // refresh token
+          data.role,          // user role
+          data.relatedTo      // optional related student/family
+        );
+        console.log(`this is form login access token:${data.accessToken},refresh token:${data.refreshToken} `);
+        
+
         Toast.show({
           type: "success",
           text1: "Login Successful",
@@ -159,6 +168,7 @@ const LoginScreen = ({ navigation }) => {
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
       >
+        {/* === Your UI/UX remains 100% unchanged === */}
         <View style={styles.header}>
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>Sign in to continue</Text>
@@ -238,7 +248,7 @@ const LoginScreen = ({ navigation }) => {
             </TouchableOpacity>
           )}
 
-          {/* Forgot Password Button */}
+          {/* Forgot Password */}
           <TouchableOpacity
             style={styles.forgotPasswordButton}
             onPress={() => setShowReset(!showReset)}
@@ -248,7 +258,7 @@ const LoginScreen = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
 
-          {/* Password Reset Form */}
+          {/* Reset Password Form */}
           {showReset && (
             <>
               <Text style={styles.inputLabel}>New Password</Text>

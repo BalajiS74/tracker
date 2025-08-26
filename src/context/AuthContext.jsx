@@ -1,38 +1,46 @@
 import React, { createContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 
-// Create the context
 export const AuthContext = createContext();
 
-/**
- * AuthProvider: Wraps your app and provides auth state
- */
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [userToken, setUserToken] = useState(null);
+  const [accessToken, setAccessToken] = useState(null);
+  const [refreshToken, setRefreshToken] = useState(null);
   const [role, setRole] = useState(null);
   const [relatedTo, setRelatedTo] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load auth from AsyncStorage on startup
+  const API_URL = "http://10.141.109.19:5000"; // adjust if needed
+
+  // Axios instance for auth requests
+  const api = axios.create({ baseURL: API_URL });
+
+  // Load stored auth data on mount
   useEffect(() => {
     const loadStoredAuth = async () => {
       try {
-        const [storedToken, storedUser, storedRole, storedRelatedTo] =
-          await Promise.all([
-            AsyncStorage.getItem("userToken"),
-            AsyncStorage.getItem("user"),
-            AsyncStorage.getItem("role"),
-            AsyncStorage.getItem("relatedTo"),
-          ]);
+        const [
+          storedAccess,
+          storedRefresh,
+          storedUser,
+          storedRole,
+          storedRelated,
+        ] = await Promise.all([
+          AsyncStorage.getItem("accessToken"),
+          AsyncStorage.getItem("refreshToken"),
+          AsyncStorage.getItem("user"),
+          AsyncStorage.getItem("role"),
+          AsyncStorage.getItem("relatedTo"),
+        ]);
 
-        if (storedToken && storedUser) {
-          setUserToken(storedToken);
+        if (storedAccess && storedRefresh && storedUser) {
+          setAccessToken(storedAccess);
+          setRefreshToken(storedRefresh);
           setUser(JSON.parse(storedUser));
           setRole(storedRole);
-          if (storedRelatedTo) {
-            setRelatedTo(JSON.parse(storedRelatedTo));
-          }
+          if (storedRelated) setRelatedTo(JSON.parse(storedRelated));
         }
       } catch (error) {
         console.error("❌ Auth load error:", error);
@@ -44,69 +52,63 @@ export const AuthProvider = ({ children }) => {
     loadStoredAuth();
   }, []);
 
-  /**
-   * Login handler — stores everything securely
-   */
-  const login = async (userData, token, userRole, relatedStudent = null) => {
+  // Login: store tokens & user info
+  const login = async (
+    userData,
+    access,
+    refresh,
+    userRole,
+    relatedStudent = null
+  ) => {
     try {
+      const roleToStore = userRole || "student"; // default role if undefined
+
       const tasks = [
-        AsyncStorage.setItem("userToken", token),
+        AsyncStorage.setItem("accessToken", access),
+        AsyncStorage.setItem("refreshToken", refresh),
         AsyncStorage.setItem("user", JSON.stringify(userData)),
-        AsyncStorage.setItem("role", userRole),
+        AsyncStorage.setItem("role", roleToStore),
       ];
+      console.log(`this is from tasks${access}`);
+      console.log(`this is from tasks${refresh}`);
 
       if (relatedStudent) {
         tasks.push(
           AsyncStorage.setItem("relatedTo", JSON.stringify(relatedStudent))
         );
       }
-
-      // Store emergency contact
-      const parentPhone =
-        userData?.role === "student" ? userData?.parents?.[0]?.phone : null;
-      const emergencyPhone =
-        userData?.role === "staff" ? userData?.emergencyContact?.phone : null;
-
-      if (parentPhone) {
-        tasks.push(AsyncStorage.setItem("parentPhone", parentPhone));
-      }
-
-      if (emergencyPhone) {
-        tasks.push(AsyncStorage.setItem("emergencyPhone", emergencyPhone));
-      }
-
-      // Save avatar if exists
       if (userData?.avatar) {
         tasks.push(AsyncStorage.setItem("profilePhoto", userData.avatar));
       }
 
-      await Promise.all(tasks);
-
-      setUser(userData);
-      setUserToken(token);
-      setRole(userRole);
+      const setedtolocalstoreage = await Promise.all(tasks);
+      if (setedtolocalstoreage) {
+        setUser(userData);
+        setAccessToken(access);
+        setRefreshToken(refresh);
+        setRole(roleToStore);
+        console.log("login successfully");
+      }
       if (relatedStudent) setRelatedTo(relatedStudent);
     } catch (error) {
       console.error("❌ Login error:", error);
     }
   };
 
-  /**
-   * Logout handler — clears everything from AsyncStorage
-   */
+  // Logout: remove tokens & user data
   const logout = async () => {
     try {
       await AsyncStorage.multiRemove([
-        "userToken",
+        "accessToken",
+        "refreshToken",
         "user",
         "role",
         "relatedTo",
-        "parentPhone",
-        "emergencyPhone",
         "profilePhoto",
       ]);
       setUser(null);
-      setUserToken(null);
+      setAccessToken(null);
+      setRefreshToken(null);
       setRole(null);
       setRelatedTo(null);
     } catch (error) {
@@ -114,15 +116,68 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  /**
-   * Refresh user object (e.g., after avatar or info change)
-   */
+  // Refresh access token using refresh token
+  const refreshAccessToken = async () => {
+    if (!refreshToken) return null;
+
+    try {
+      const res = await axios.post(`${API_URL}/api/auth/refresh-token`, {
+        token: refreshToken,
+      });
+      const newAccess = res.data.accessToken;
+      await AsyncStorage.setItem("accessToken", newAccess);
+      setAccessToken(newAccess);
+      return newAccess;
+    } catch (error) {
+      console.error("❌ Refresh token error:", error);
+      await logout();
+      return null;
+    }
+  };
+
+  // API helper with automatic token refresh
+  const apiRequest = async (endpoint, options = {}) => {
+    try {
+      const token = accessToken;
+
+      const res = await api({
+        url: endpoint,
+        ...options,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(options.headers || {}),
+        },
+      });
+
+      return res.data;
+    } catch (err) {
+      // If 401, try refreshing token
+      if (err.response?.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (!newToken) throw err;
+
+        const retryRes = await api({
+          url: endpoint,
+          ...options,
+          headers: {
+            Authorization: `Bearer ${newToken}`,
+            ...(options.headers || {}),
+          },
+        });
+
+        return retryRes.data;
+      }
+
+      throw err;
+    }
+  };
+
+  // Refresh user data in AsyncStorage
   const refreshUser = async (newUserData) => {
     try {
       await AsyncStorage.setItem("user", JSON.stringify(newUserData));
-      if (newUserData?.avatar) {
+      if (newUserData?.avatar)
         await AsyncStorage.setItem("profilePhoto", newUserData.avatar);
-      }
       setUser(newUserData);
     } catch (error) {
       console.error("❌ User refresh error:", error);
@@ -133,13 +188,17 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
-        userToken,
+        accessToken,
+        refreshToken,
         role,
         relatedTo,
         isLoading,
         login,
         logout,
         refreshUser,
+        refreshAccessToken,
+        apiRequest,
+        api, // optional axios instance
       }}
     >
       {children}
