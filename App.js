@@ -5,8 +5,14 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Toast from "react-native-toast-message";
 import { ActivityIndicator, View } from "react-native";
-import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
-import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from "react-native-responsive-screen";
 
 import { AuthProvider, AuthContext } from "./src/context/AuthContext";
 import { BusProvider } from "./src/context/BusContext";
@@ -18,12 +24,18 @@ const Track = React.lazy(() => import("./src/screens/Track"));
 const BusDetails = React.lazy(() => import("./src/screens/BusDetails"));
 const LoginScreen = React.lazy(() => import("./src/screens/LoginScreen"));
 const Profile = React.lazy(() => import("./src/screens/Profile"));
-const HelpSupportScreen = React.lazy(() => import("./src/screens/HelpSupportScreen"));
-const TermsPrivacyScreen = React.lazy(() => import("./src/screens/TermsPrivacyScreen"));
+const HelpSupportScreen = React.lazy(() =>
+  import("./src/screens/HelpSupportScreen")
+);
+const TermsPrivacyScreen = React.lazy(() =>
+  import("./src/screens/TermsPrivacyScreen")
+);
 const SafetytipsScreen = React.lazy(() => import("./src/screens/SafetyTips"));
 const ReportScreen = React.lazy(() => import("./src/screens/ReportScreen"));
 const AboutAppScreen = React.lazy(() => import("./src/screens/AboutAppScreen"));
-const AnnouncementPage = React.lazy(() => import("./src/screens/AnnouncementPage"));
+const AnnouncementPage = React.lazy(() =>
+  import("./src/screens/AnnouncementPage")
+);
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -54,9 +66,12 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color }) => {
           let iconName = "home";
-          if (route.name === "Home") iconName = focused ? "home" : "home-outline";
-          else if (route.name === "Track") iconName = focused ? "location" : "location-outline";
-          else if (route.name === "Profile") iconName = focused ? "person-circle" : "person-circle-outline";
+          if (route.name === "Home")
+            iconName = focused ? "home" : "home-outline";
+          else if (route.name === "Track")
+            iconName = focused ? "location" : "location-outline";
+          else if (route.name === "Profile")
+            iconName = focused ? "person-circle" : "person-circle-outline";
           return <Ionicons name={iconName} size={24} color={color} />;
         },
         tabBarActiveTintColor: "#4b0082",
@@ -79,7 +94,7 @@ function MainTabs() {
 }
 
 function MainStack() {
-  const { accessToken, role, isLoading } = useContext(AuthContext);
+  const { refreshToken, role, isLoading } = useContext(AuthContext);
   const isAdmin = role === "admin";
 
   if (isLoading) {
@@ -94,29 +109,63 @@ function MainStack() {
     <NavigationContainer>
       <Suspense
         fallback={
-          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <View
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          >
             <ActivityIndicator size="large" color="#4b0082" />
           </View>
         }
       >
         <Stack.Navigator>
-          {!accessToken ? (
-            <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+          {!refreshToken ? (
+            <Stack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{ headerShown: false }}
+            />
           ) : (
             <>
-              <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
+              <Stack.Screen
+                name="MainTabs"
+                component={MainTabs}
+                options={{ headerShown: false }}
+              />
               <Stack.Screen
                 name="BusDetails"
                 component={BusDetails}
                 initialParams={{ isAdmin }}
                 options={{ headerShown: false }}
               />
-              <Stack.Screen name="HelpSupport" component={HelpSupportScreen} options={{ headerShown: false }} />
-              <Stack.Screen name="TermsPrivacy" component={TermsPrivacyScreen} options={{ headerShown: false }} />
-              <Stack.Screen name="Safetytips" component={SafetytipsScreen} options={{ headerShown: false }} />
-              <Stack.Screen name="ReportScreen" component={ReportScreen} options={{ headerShown: false }} />
-              <Stack.Screen name="AboutAppScreen" component={AboutAppScreen} options={{ headerShown: false }} />
-              <Stack.Screen name="AnnouncementPage" component={AnnouncementPage} options={{ headerShown: false }} />
+              <Stack.Screen
+                name="HelpSupport"
+                component={HelpSupportScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="TermsPrivacy"
+                component={TermsPrivacyScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="Safetytips"
+                component={SafetytipsScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="ReportScreen"
+                component={ReportScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="AboutAppScreen"
+                component={AboutAppScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="AnnouncementPage"
+                component={AnnouncementPage}
+                options={{ headerShown: false }}
+              />
             </>
           )}
         </Stack.Navigator>
@@ -128,7 +177,8 @@ function MainStack() {
 export default function App() {
   const [isSplashDone, setIsSplashDone] = useState(false);
 
-  if (!isSplashDone) return <CustomSplashScreen onFinish={() => setIsSplashDone(true)} />;
+  if (!isSplashDone)
+    return <CustomSplashScreen onFinish={() => setIsSplashDone(true)} />;
 
   return (
     <SafeAreaProvider>

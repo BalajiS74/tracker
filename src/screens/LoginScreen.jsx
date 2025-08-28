@@ -51,7 +51,7 @@ const LoginScreen = ({ navigation }) => {
 
     try {
       const response = await fetch(
-        "http://10.141.109.19:5000/api/auth/login",
+        "https://trakerbackend.onrender.com/api/auth/login",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -82,9 +82,6 @@ const LoginScreen = ({ navigation }) => {
           data.role,          // user role
           data.relatedTo      // optional related student/family
         );
-        console.log(`this is form login access token:${data.accessToken},refresh token:${data.refreshToken} `);
-        
-
         Toast.show({
           type: "success",
           text1: "Login Successful",

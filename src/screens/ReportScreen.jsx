@@ -51,6 +51,7 @@ const getRouteData = (busID) => {
 // ------------------------ Main Component ------------------------
 const ReportScreen = () => {
   const { user, apiRequest, accessToken, isLoading } = useContext(AuthContext);
+  // console.log(user);
 
   const [reportType, setReportType] = useState("general");
   const [description, setDescription] = useState("");
@@ -62,12 +63,13 @@ const ReportScreen = () => {
   const [activeTab, setActiveTab] = useState("new");
   const [history, setHistory] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [replyText, setReplyText] = useState("");
+  const [replyTexts, setReplyTexts] = useState({});
 
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
-
+  const [hiddenReports, setHiddenReports] = useState({});
+  
   // ------------------------ Effects ------------------------
   useEffect(() => {
     Animated.parallel([
@@ -160,12 +162,18 @@ const ReportScreen = () => {
 
     setIsSubmitting(true);
     try {
+      // Get selected bus name
+      const busName = selectedBus
+        ? busList.find((bus) => bus.id === selectedBus)?.name || selectedBus
+        : null;
+
       await apiRequest("/api/reports", {
         method: "POST",
         data: {
           reportType,
           description,
-          busID: selectedBus || null,
+          busID: selectedBus || null, // keep ID if backend needs it
+          busName: busName, // send bus name too
           stopName: selectedStop || null,
         },
       });
@@ -183,24 +191,55 @@ const ReportScreen = () => {
     }
   };
 
+  const handleReplyChange = (reportId, text) => {
+    setReplyTexts((prev) => ({ ...prev, [reportId]: text }));
+  };
+
   const replyToReport = async (reportId) => {
-    if (!replyText.trim()) {
+    const text = replyTexts[reportId];
+    if (!text?.trim()) {
       Alert.alert("Error", "Response cannot be empty.");
       return;
     }
 
     try {
-      await apiRequest(`/api/reports/${reportId}/reply`, {
-        method: "POST",
-        data: { response: replyText },
+      await apiRequest(`/api/reports/respond/${reportId}`, {
+        method: "PUT",
+        data: { response: text, status: "resolved" },
       });
       Alert.alert("Success", "Response sent!");
-      setReplyText("");
-      fetchAllReports(); // refresh history after reply
+      setReplyTexts((prev) => ({ ...prev, [reportId]: "" }));
+      fetchAllReports();
     } catch (err) {
       console.error("Reply error:", err.response?.data || err);
       Alert.alert("Error", "Failed to send response.");
     }
+  };
+
+  const handleDeleteReport = async (reportId) => {
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete this report?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await apiRequest(`/api/reports/delete/${reportId}`, {
+                method: "DELETE",
+              });
+              Alert.alert("Success", "Report deleted successfully!");
+              fetchHistory(); // or fetchAllReports() depending on context
+            } catch (err) {
+              console.error("Delete error:", err.response?.data || err);
+              Alert.alert("Error", "Failed to delete report.");
+            }
+          },
+        },
+      ]
+    );
   };
 
   // ------------------------ Helpers ------------------------
@@ -385,18 +424,20 @@ const ReportScreen = () => {
                     isSubmitting && styles.submitButtonDisabled,
                   ]}
                   onPress={handleSubmit}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting} 
                 >
                   <View style={styles.solidButton}>
-                    {isSubmitting ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Ionicons
-                        name="paper-plane-outline"
-                        size={wp("5%")}
-                        color="#fff"
-                      />
-                    )}
+                    <View style={{ width: wp("6%"), alignItems: "center" }}>
+                      {isSubmitting ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Ionicons
+                          name="paper-plane-outline"
+                          size={wp("5%")}
+                          color="#fff"
+                        />
+                      )}
+                    </View>
                     <Text style={styles.submitButtonText}>
                       {isSubmitting ? "Submitting..." : "Submit Report"}
                     </Text>
@@ -460,9 +501,31 @@ const ReportScreen = () => {
                           </Text>
                         </View>
                       </View>
+
                       <Text style={styles.reportDescription}>
+                        <Text style={styles.reportDescriptionLabel}>
+                          Complaint:{" "}
+                        </Text>
                         {report.description}
                       </Text>
+
+                      {/* Bus and Stop info */}
+                      {report.busName && (
+                        <Text style={styles.reportBus}>
+                          <Text style={styles.reportBusLabel}>Bus Route: </Text>
+                          {report.busName}
+                        </Text>
+                      )}
+
+                      {report.stopName && (
+                        <Text style={styles.reportStop}>
+                          <Text style={styles.reportStopLabel}>
+                            Stop Name:{" "}
+                          </Text>
+                          {report.stopName}
+                        </Text>
+                      )}
+
                       <Text style={styles.reportDate}>
                         {new Date(report.createdAt).toLocaleDateString(
                           "en-US",
@@ -475,6 +538,7 @@ const ReportScreen = () => {
                           }
                         )}
                       </Text>
+
                       {report.response && (
                         <View style={styles.responseContainer}>
                           <View style={styles.responseHeader}>
@@ -498,8 +562,10 @@ const ReportScreen = () => {
                         <View style={{ marginTop: hp("1%") }}>
                           <TextInput
                             placeholder="Write your response..."
-                            value={replyText}
-                            onChangeText={setReplyText}
+                            value={replyTexts[report._id] || ""}
+                            onChangeText={(text) =>
+                              handleReplyChange(report._id, text)
+                            }
                             style={styles.descriptionInput}
                           />
                           <TouchableOpacity
@@ -511,6 +577,41 @@ const ReportScreen = () => {
                             </Text>
                           </TouchableOpacity>
                         </View>
+                      )}
+
+                      {/* User delete button */}
+                      {/* User delete button */}
+                      {user?.id === report.userId && (
+                        <TouchableOpacity
+                          style={[
+                            styles.deleteButton,
+                            { backgroundColor: "#FF4D4D", marginTop: hp("1%") },
+                          ]}
+                          onPress={() => handleDeleteReport(report._id)}
+                        >
+                          <Text style={styles.deleteButtonText}>
+                            Delete Report
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+
+                      {user?.role === "admin" && user?.role != "student" && (
+                        <TouchableOpacity
+                          style={[
+                            styles.deleteButton,
+                            { backgroundColor: "#999", marginTop: hp("1%") },
+                          ]}
+                          onPress={() =>
+                            setHiddenReports((prev) => ({
+                              ...prev,
+                              [report._id]: true,
+                            }))
+                          }
+                        >
+                          <Text style={styles.deleteButtonText}>
+                            Hide Report
+                          </Text>
+                        </TouchableOpacity>
                       )}
                     </View>
                   ))
@@ -638,11 +739,18 @@ const styles = StyleSheet.create({
     padding: wp("4%"),
     alignItems: "center",
     justifyContent: "center",
-    gap: wp("2%"),
     backgroundColor: "#6C63FF",
   },
-  submitButtonDisabled: { opacity: 0.7 },
-  submitButtonText: { color: "#fff", fontSize: wp("4.2%"), fontWeight: "600" },
+  submitButtonDisabled: {
+    opacity: 0.7,
+  },
+  submitButtonText: {
+    color: "#fff", // make it visible on purple background
+    fontSize: wp("4.2%"),
+    fontWeight: "600",
+    marginLeft: wp("2%"), // spacing from icon/spinner
+  },
+
   historyContainer: { paddingHorizontal: wp("4%"), paddingTop: hp("2%") },
   reportCard: {
     backgroundColor: "#fff",
@@ -677,12 +785,6 @@ const styles = StyleSheet.create({
     borderRadius: wp("2%"),
   },
   statusText: { fontSize: wp("3.2%"), fontWeight: "600" },
-  reportDescription: {
-    fontSize: wp("4%"),
-    color: "#555",
-    marginBottom: hp("1%"),
-    lineHeight: hp("2.8%"),
-  },
   reportDate: { fontSize: wp("3.5%"), color: "#888", marginBottom: hp("1.5%") },
   responseContainer: {
     borderTopWidth: 1,
@@ -747,6 +849,43 @@ const styles = StyleSheet.create({
     paddingVertical: hp("1.5%"),
   },
   modalButtonText: { color: "#fff", fontWeight: "600", fontSize: wp("4%") },
+  deleteButton: {
+    borderRadius: wp("2.5%"),
+    overflow: "hidden",
+    paddingVertical: wp("3%"),
+    alignItems: "center",
+    justifyContent: "center",
+    width: wp("30%"),
+    marginLeft: wp("50%"),
+  },
+  deleteButtonText: { color: "#fff", fontWeight: "600", fontSize: wp("4%") },
+  reportBus: {
+    fontSize: wp("3.5%"),
+    color: "#555",
+  },
+  reportStop: {
+    fontSize: wp("3.5%"),
+    color: "#555",
+    marginBottom: hp("0.5%"),
+  },
+  reportBusLabel: {
+    fontSize: wp("4%"),
+    fontWeight: "500",
+    color: "#333",
+    marginTop: hp("1%"),
+  },
+  reportStopLabel: {
+    fontSize: wp("4%"),
+    fontWeight: "500",
+    color: "#333",
+    marginTop: hp("1%"),
+  },
+  reportDescriptionLabel: {
+    fontSize: wp("4%"),
+    fontWeight: "500",
+    color: "#333",
+    marginTop: hp("1%"),
+  },
 });
 
 export default ReportScreen;

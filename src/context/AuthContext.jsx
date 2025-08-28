@@ -12,12 +12,20 @@ export const AuthProvider = ({ children }) => {
   const [relatedTo, setRelatedTo] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const API_URL = "http://10.141.109.19:5000"; // adjust if needed
-
-  // Axios instance for auth requests
+  const API_URL = "https://trakerbackend.onrender.com"; // adjust if needed
   const api = axios.create({ baseURL: API_URL });
 
-  // Load stored auth data on mount
+  // --- Refresh token queue ---
+  let isRefreshing = false;
+  let refreshSubscribers = [];
+
+  const subscribeTokenRefresh = (cb) => refreshSubscribers.push(cb);
+  const onRefreshed = (newToken) => {
+    refreshSubscribers.forEach((cb) => cb(newToken));
+    refreshSubscribers = [];
+  };
+
+  // --- Load stored auth on mount ---
   useEffect(() => {
     const loadStoredAuth = async () => {
       try {
@@ -35,33 +43,27 @@ export const AuthProvider = ({ children }) => {
           AsyncStorage.getItem("relatedTo"),
         ]);
 
-        if (storedAccess && storedRefresh && storedUser) {
+        if (storedRefresh && storedUser) {
+          setUser(JSON.parse(storedUser));
           setAccessToken(storedAccess);
           setRefreshToken(storedRefresh);
-          setUser(JSON.parse(storedUser));
           setRole(storedRole);
           if (storedRelated) setRelatedTo(JSON.parse(storedRelated));
         }
       } catch (error) {
         console.error("❌ Auth load error:", error);
+        await logout();
       } finally {
         setIsLoading(false);
       }
     };
-
     loadStoredAuth();
   }, []);
 
-  // Login: store tokens & user info
-  const login = async (
-    userData,
-    access,
-    refresh,
-    userRole,
-    relatedStudent = null
-  ) => {
+  // --- Login ---
+  const login = async (userData, access, refresh, userRole, relatedStudent = null) => {
     try {
-      const roleToStore = userRole || "student"; // default role if undefined
+      const roleToStore = userRole || "student";
 
       const tasks = [
         AsyncStorage.setItem("accessToken", access),
@@ -69,33 +71,27 @@ export const AuthProvider = ({ children }) => {
         AsyncStorage.setItem("user", JSON.stringify(userData)),
         AsyncStorage.setItem("role", roleToStore),
       ];
-      console.log(`this is from tasks${access}`);
-      console.log(`this is from tasks${refresh}`);
 
       if (relatedStudent) {
-        tasks.push(
-          AsyncStorage.setItem("relatedTo", JSON.stringify(relatedStudent))
-        );
+        tasks.push(AsyncStorage.setItem("relatedTo", JSON.stringify(relatedStudent)));
       }
       if (userData?.avatar) {
         tasks.push(AsyncStorage.setItem("profilePhoto", userData.avatar));
       }
 
-      const setedtolocalstoreage = await Promise.all(tasks);
-      if (setedtolocalstoreage) {
-        setUser(userData);
-        setAccessToken(access);
-        setRefreshToken(refresh);
-        setRole(roleToStore);
-        console.log("login successfully");
-      }
+      await Promise.all(tasks);
+
+      setUser(userData);
+      setAccessToken(access);
+      setRefreshToken(refresh);
+      setRole(roleToStore);
       if (relatedStudent) setRelatedTo(relatedStudent);
     } catch (error) {
       console.error("❌ Login error:", error);
     }
   };
 
-  // Logout: remove tokens & user data
+  // --- Logout ---
   const logout = async () => {
     try {
       await AsyncStorage.multiRemove([
@@ -116,68 +112,66 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Refresh access token using refresh token
+  // --- Refresh access token ---
   const refreshAccessToken = async () => {
-    if (!refreshToken) return null;
+    const storedRefresh = await AsyncStorage.getItem("refreshToken");
+    if (!storedRefresh) return null;
+
+    if (isRefreshing) {
+      return new Promise((resolve) => subscribeTokenRefresh(resolve));
+    }
+
+    isRefreshing = true;
 
     try {
-      const res = await axios.post(`${API_URL}/api/auth/refresh-token`, {
-        token: refreshToken,
-      });
-      const newAccess = res.data.accessToken;
-      await AsyncStorage.setItem("accessToken", newAccess);
-      setAccessToken(newAccess);
+      const res = await axios.post(`${API_URL}/api/auth/refresh-token`, { token: storedRefresh });
+      const { accessToken: newAccess, refreshToken: newRefresh } = res.data;
+
+      if (newRefresh) {
+        await AsyncStorage.setItem("refreshToken", newRefresh);
+        setRefreshToken(newRefresh);
+      }
+
+      if (newAccess) {
+        await AsyncStorage.setItem("accessToken", newAccess);
+        setAccessToken(newAccess);
+      }
+
+      onRefreshed(newAccess);
       return newAccess;
-    } catch (error) {
-      console.error("❌ Refresh token error:", error);
+    } catch (err) {
+      console.error("❌ Refresh token error:", err.response?.data || err);
       await logout();
-      return null;
+      throw err;
+    } finally {
+      isRefreshing = false;
     }
   };
 
-  // API helper with automatic token refresh
+  // --- API helper with automatic retry ---
   const apiRequest = async (endpoint, options = {}) => {
+    const makeRequest = async (token) =>
+      api({ url: endpoint, ...options, headers: { Authorization: `Bearer ${token}`, ...(options.headers || {}) } });
+
     try {
-      const token = accessToken;
-
-      const res = await api({
-        url: endpoint,
-        ...options,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          ...(options.headers || {}),
-        },
-      });
-
-      return res.data;
+      const storedAccess = await AsyncStorage.getItem("accessToken");
+      return (await makeRequest(storedAccess)).data;
     } catch (err) {
-      // If 401, try refreshing token
-      if (err.response?.status === 401) {
+      const status = err.response?.status;
+      if (status === 401 || status === 403) {
         const newToken = await refreshAccessToken();
         if (!newToken) throw err;
-
-        const retryRes = await api({
-          url: endpoint,
-          ...options,
-          headers: {
-            Authorization: `Bearer ${newToken}`,
-            ...(options.headers || {}),
-          },
-        });
-
-        return retryRes.data;
+        return (await makeRequest(newToken)).data;
       }
-
       throw err;
     }
   };
 
-  // Refresh user data in AsyncStorage
+  // --- Refresh user in AsyncStorage ---
   const refreshUser = async (newUserData) => {
     try {
       await AsyncStorage.setItem("user", JSON.stringify(newUserData));
-      if (newUserData?.avatar)
-        await AsyncStorage.setItem("profilePhoto", newUserData.avatar);
+      if (newUserData?.avatar) await AsyncStorage.setItem("profilePhoto", newUserData.avatar);
       setUser(newUserData);
     } catch (error) {
       console.error("❌ User refresh error:", error);
@@ -198,7 +192,7 @@ export const AuthProvider = ({ children }) => {
         refreshUser,
         refreshAccessToken,
         apiRequest,
-        api, // optional axios instance
+        api,
       }}
     >
       {children}

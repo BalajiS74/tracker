@@ -18,7 +18,6 @@ export const BusProvider = ({ children }) => {
         setBuses(data);
         await AsyncStorage.setItem("buses", JSON.stringify(data));
       } catch (err) {
-        console.log("Backend fetch failed, loading from storage");
         const storedData = await AsyncStorage.getItem("buses");
         if (storedData) setBuses(JSON.parse(storedData));
       }
