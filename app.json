@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "SCAD BUS",
-    "slug": "scad-bus",
+    "slug": "tracker",
     "platforms": [
       "ios",
       "android"
