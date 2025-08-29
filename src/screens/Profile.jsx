@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   menuIconContainer: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#f0e6ff", justifyContent: "center", alignItems: "center", marginRight: 12 },
   menuText: { flex: 1, fontSize: 16, color: "#2C3E50", fontWeight: "500" },
   logoutButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#FF6B6B", padding: 16, borderRadius: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
-  logoutButtonText: { color: "#fff", fontSize: 16, fontWeight: "600", marginLeft: 8 },
+  logoutButtonText: { color: "#fff", fontSize: 16, fontWeight: "600", marginLeft: 8,padding:5 },
   uploadOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center" },
   uploadIndicator: { backgroundColor: "#fff", padding: 24, borderRadius: 16, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
   uploadText: { fontSize: 16, color: "#2C3E50", marginTop: 12, fontWeight: "500" },

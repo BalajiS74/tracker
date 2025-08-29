@@ -1,4 +1,4 @@
-import React, { useContext, Suspense, useState } from "react";
+import React, { useContext, Suspense } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -16,7 +16,6 @@ import {
 
 import { AuthProvider, AuthContext } from "./src/context/AuthContext";
 import { BusProvider } from "./src/context/BusContext";
-import CustomSplashScreen from "./src/screens/CustomSplashScreen";
 
 // Lazy load screens
 const HomeScreen = React.lazy(() => import("./src/screens/HomeScreen"));
@@ -175,11 +174,6 @@ function MainStack() {
 }
 
 export default function App() {
-  const [isSplashDone, setIsSplashDone] = useState(false);
-
-  if (!isSplashDone)
-    return <CustomSplashScreen onFinish={() => setIsSplashDone(true)} />;
-
   return (
     <SafeAreaProvider>
       <AuthProvider>
