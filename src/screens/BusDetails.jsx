@@ -158,12 +158,13 @@ const BusDetails = ({ route }) => {
   const [upcommingStop, setUpcommingStop] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("route");
-  const [userLocation, setUserLocation] = useState(null);
+  // const [userLocation, setUserLocation] = useState(null);
 
   const [etaToNextStop, setEtaToNextStop] = useState("--");
   const [countdown, setCountdown] = useState("--");
   const [nearestUserStop, setNearestUserStop] = useState(null);
   const [notified, setNotified] = useState(false);
+  const [showUnavailable, setShowUnavailable] = useState(false);
 
   const blinkAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -241,7 +242,6 @@ const BusDetails = ({ route }) => {
     if (!busID || displayedStops.length === 0) return;
 
     const firebaseURL = `https://bus-tracking-school-92dd9-default-rtdb.asia-southeast1.firebasedatabase.app/gps/${busID}.json`;
-
     try {
       const response = await axios.get(firebaseURL);
       const data = response.data;
@@ -300,17 +300,17 @@ const BusDetails = ({ route }) => {
   }, [fetchCurrentLocation]);
 
   // user location
-  useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setUserLocation(null);
-        return;
-      }
-      let location = await Location.getCurrentPositionAsync({});
-      setUserLocation(location.coords);
-    })();
-  }, []);
+  // useEffect(() => {
+  //   (async () => {
+  //     let { status } = await Location.requestForegroundPermissionsAsync();
+  //     if (status !== "granted") {
+  //       setUserLocation(null);
+  //       return;
+  //     }
+  //     let location = await Location.getCurrentPositionAsync({});
+  //     setUserLocation(location.coords);
+  //   })();
+  // }, []);
 
   // Speak next stop (use displayed order)
   useEffect(() => {
@@ -395,6 +395,16 @@ const BusDetails = ({ route }) => {
     [currentStopIdx, displayedStops.length, blinkAnim, pulseAnim]
   );
 
+  // This useEffect must be here, before any return!
+  useEffect(() => {
+    if (busData?.isNotAvailable) {
+      setShowUnavailable(true);
+    }
+    else { setShowUnavailable(false); }
+  }, [busData]);
+// console.log(busData.isNotAvailable);
+
+  // Now, do conditional returns
   if (!routeData || loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -404,7 +414,7 @@ const BusDetails = ({ route }) => {
     );
   }
 
-  if (busData?.isNotAvailable) {
+  if (showUnavailable) {
     return <UnavailableBusScreen busData={busData} />;
   }
 
