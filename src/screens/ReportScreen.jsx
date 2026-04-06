@@ -24,9 +24,9 @@ import {
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
 import { useNavigation } from "@react-navigation/native";
-import useAuthStore from '../store/useAuthStore';
+import useAuthStore from "../store/useAuthStore";
 import { SafeAreaView } from "react-native-safe-area-context";
-
+import { endpoint } from "../services/api/endpoint";
 const { width } = Dimensions.get("window");
 
 // ------------------------ Static Data ------------------------
@@ -66,6 +66,7 @@ const ReportScreen = () => {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
   const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+  // console.log();
 
   // ------------------------ Effects ------------------------
   useEffect(() => {
@@ -100,7 +101,7 @@ const ReportScreen = () => {
 
     setIsLoadingHistory(true);
     try {
-      const data = await apiRequest(`/api/reports/user/${user.id}`);
+      const data = await apiRequest(endpoint.FETCH_REPORT(user.id));
       setHistory(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Fetch history error:", err.response?.data || err);
@@ -121,7 +122,7 @@ const ReportScreen = () => {
 
     setIsLoadingHistory(true);
     try {
-      const data = await apiRequest("/api/reports/all"); // Admin sees all reports
+      const data = await apiRequest(endpoint.ALL_REPORTS); // Admin sees all reports
       setHistory(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Fetch all reports error:", err.response?.data || err);
@@ -167,7 +168,7 @@ const ReportScreen = () => {
         ? busList.find((bus) => bus.id === selectedBus)?.name || selectedBus
         : null;
 
-      await apiRequest("/api/reports", {
+      await apiRequest(endpoint.POST_REPORT, {
         method: "POST",
         data: {
           reportType,
@@ -203,7 +204,7 @@ const ReportScreen = () => {
     }
 
     try {
-      await apiRequest(`/api/reports/respond/${reportId}`, {
+      await apiRequest(endpoint.REPORT_RESPONSE(reportId), {
         method: "PUT",
         data: { response: text, status: "resolved" },
       });
@@ -227,7 +228,7 @@ const ReportScreen = () => {
           style: "destructive",
           onPress: async () => {
             try {
-              await apiRequest(`/api/reports/delete/${reportId}`, {
+              await apiRequest(endpoint.REPORT_DELETE(reportId), {
                 method: "DELETE",
               });
               Alert.alert("Success", "Report deleted successfully!");

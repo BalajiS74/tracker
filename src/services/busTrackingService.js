@@ -1,9 +1,8 @@
 import { globalDataFetcher } from './getdata';
 import { calculateDistance } from '../helpers/calculations';
-
 // Fetch bus location from Firebase
 export const fetchBusLocation = async (busId) => {
-  const firebaseURL = `https://bus-tracking-school-92dd9-default-rtdb.asia-southeast1.firebasedatabase.app/gps/${busId}.json`;
+  const firebaseURL = process.env.EXPO_PUBLIC_FIREBASE_URL.replace('${busId}', busId);
   const { data, isBusOnline } = await globalDataFetcher(firebaseURL);
   return { busInfo: data, isOnline: isBusOnline };
 };

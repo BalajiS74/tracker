@@ -13,7 +13,7 @@ import {
 import Toast from "react-native-toast-message";
 import useAuthStore from "../store/useAuthStore";
 import Ionicons from "@expo/vector-icons/Ionicons";
-
+import { endpoint } from "../services/api/endpoint";
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +22,6 @@ const LoginScreen = () => {
   const [showReset, setShowReset] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
-
   const { login } = useAuthStore();
   const passwordInputRef = useRef(null);
 
@@ -50,14 +49,13 @@ const LoginScreen = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "https://trakerbackend.onrender.com/api/auth/login",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        },
-      );
+      const api = process.env.EXPO_PUBLIC_BACKEND_URL + endpoint.LOGIN;
+
+      const response = await fetch(api, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
       const text = await response.text();
       let data = {};
@@ -126,7 +124,7 @@ const LoginScreen = () => {
 
     try {
       const response = await fetch(
-        "https://trakerbackend.onrender.com/api/auth/forgot-password",
+        process.env.EXPO_PUBLIC_BACKEND_URL + endpoint.FORGETPASSWORD,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

@@ -1,5 +1,3 @@
-const API_BASE_URL = "http://10.173.152.19:5000/api"; // Your server IP
-
 // Helper function for handling fetch responses
 const handleResponse = async (response) => {
   console.log(`📡 API Response: ${response.status} ${response.url}`);
@@ -35,7 +33,7 @@ const handleResponse = async (response) => {
 
 // Helper function for making API requests
 const apiRequest = async (url, method, body = null) => {
-  const fullUrl = `${API_BASE_URL}${url}`;
+  const fullUrl = `${process.env.EXPO_PUBLIC_BACKEND_URL}${url}`;
   console.log(`📡 API Request: ${method} ${fullUrl}`);
   if (body) {
     console.log("Request data:", JSON.stringify(body, null, 2));

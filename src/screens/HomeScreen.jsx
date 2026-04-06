@@ -20,7 +20,6 @@ import useAuthStore from "../store/useAuthStore";
 import { globalDataFetcher, getRouteData } from "../services/getdata";
 import { calculateDistance } from "../helper/Calculations";
 import { handleEmergency } from "../services/userLocation";
-
 // Enhanced BusCard with more info
 const BusCard = memo(({ route, nextStop, time, onPress, busNumber, eta }) => {
   return (
@@ -193,9 +192,7 @@ export default function HomeScreen({ navigation }) {
 
   const fetchBusData = useCallback(async () => {
     try {
-      const URL =
-        "https://bus-tracking-school-92dd9-default-rtdb.asia-southeast1.firebasedatabase.app/gps.json";
-
+      const URL = process.env.EXPO_PUBLIC_FIREBASE_URL;
       const { data } = await globalDataFetcher(URL);
 
       if (!data) return setBusList([]);

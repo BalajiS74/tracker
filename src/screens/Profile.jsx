@@ -12,12 +12,10 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import useAuthStore from '../store/useAuthStore';
+import useAuthStore from "../store/useAuthStore";
 import * as ImagePicker from "expo-image-picker";
 import DefaultProfileImage from "../images/default-profile-image.png";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const API_BASE_URL = "https://trakerbackend.onrender.com";
 const ALLOWED_IMAGE_TYPES = ["jpg", "jpeg", "png"];
 const windowDimensions = Dimensions.get("window");
 
@@ -47,7 +45,7 @@ const Profile = () => {
   const navigation = useNavigation();
   const [avatarUri, setAvatarUri] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-// console.log(user);
+  // console.log(user);
 
   // Load avatar from AsyncStorage or user object
   useEffect(() => {
@@ -56,7 +54,7 @@ const Profile = () => {
         const saved = await AsyncStorage.getItem("profilePhoto");
         if (saved) setAvatarUri(saved);
         else if (user?.avatar) {
-          const fullUrl = `${API_BASE_URL}${user.avatar}?${Date.now()}`;
+          const fullUrl = `${process.env.BACKEND_URL}${user.avatar}?${Date.now()}`;
           setAvatarUri(fullUrl);
           await AsyncStorage.setItem("profilePhoto", fullUrl);
         }
@@ -74,7 +72,7 @@ const Profile = () => {
     if (!granted) {
       Alert.alert(
         "Permission Denied",
-        "You need to allow media access to change your profile picture."
+        "You need to allow media access to change your profile picture.",
       );
       return;
     }
@@ -124,7 +122,9 @@ const Profile = () => {
       try {
         data = JSON.parse(text);
       } catch {
-        throw new Error("Server did not return JSON. Response: " + text.slice(0, 100));
+        throw new Error(
+          "Server did not return JSON. Response: " + text.slice(0, 100),
+        );
       }
 
       if (!response.ok) throw new Error(data.message || "Upload failed");
@@ -165,17 +165,41 @@ const Profile = () => {
           },
         },
       ],
-      { cancelable: true }
+      { cancelable: true },
     );
   }, [logout]);
 
   // Menu items
   const menuItems = [
-    { icon: "help-circle-outline", text: "Help & Support", onPress: () => navigation.navigate("HelpSupport") },
-    { icon: "document-text-outline", text: "Terms & Privacy", onPress: () => navigation.navigate("TermsPrivacy") },
-    { icon: "alert-circle-outline", text: "Report a Problem", onPress: () => navigation.navigate("ReportScreen") },
-    { icon: "information-circle-outline", text: "About the app", onPress: () => navigation.navigate("AboutAppScreen") },
-    ...(user?.role === "admin" ? [{ icon: "megaphone-outline", text: "Announcements", onPress: () => navigation.navigate("AnnouncementPage") }] : []),
+    {
+      icon: "help-circle-outline",
+      text: "Help & Support",
+      onPress: () => navigation.navigate("HelpSupport"),
+    },
+    {
+      icon: "document-text-outline",
+      text: "Terms & Privacy",
+      onPress: () => navigation.navigate("TermsPrivacy"),
+    },
+    {
+      icon: "alert-circle-outline",
+      text: "Report a Problem",
+      onPress: () => navigation.navigate("ReportScreen"),
+    },
+    {
+      icon: "information-circle-outline",
+      text: "About the app",
+      onPress: () => navigation.navigate("AboutAppScreen"),
+    },
+    ...(user?.role === "admin"
+      ? [
+          {
+            icon: "megaphone-outline",
+            text: "Announcements",
+            onPress: () => navigation.navigate("AnnouncementPage"),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -183,7 +207,9 @@ const Profile = () => {
       <View style={styles.absoluteHeader}>
         <View>
           <Text style={styles.headerTitle}>Profile</Text>
-          <Text style={styles.headerSubtitle}>Manage your account settings</Text>
+          <Text style={styles.headerSubtitle}>
+            Manage your account settings
+          </Text>
         </View>
       </View>
 
@@ -212,22 +238,35 @@ const Profile = () => {
             </TouchableOpacity>
 
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>{user?.name || "Not provided"}</Text>
-              <Text style={styles.userEmail}>{user?.email || "Not provided"}</Text>
-              <Text style={styles.userRole}>{user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1) || "User"}</Text>
+              <Text style={styles.userName}>
+                {user?.name || "Not provided"}
+              </Text>
+              <Text style={styles.userEmail}>
+                {user?.email || "Not provided"}
+              </Text>
+              <Text style={styles.userRole}>
+                {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1) ||
+                  "User"}
+              </Text>
             </View>
           </View>
 
           {/* Personal Details */}
           <View style={styles.detailsSection}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="person-circle-outline" size={20} color="#6C63FF" />
+              <Ionicons
+                name="person-circle-outline"
+                size={20}
+                color="#6C63FF"
+              />
               <Text style={styles.sectionTitle}>Personal Information</Text>
             </View>
             <View style={styles.detailItem}>
               <Ionicons name="call-outline" size={18} color="#6C63FF" />
               <Text style={styles.detailLabel}>Phone:</Text>
-              <Text style={styles.detailValue}>{user?.phone || "Not provided"}</Text>
+              <Text style={styles.detailValue}>
+                {user?.phone || "Not provided"}
+              </Text>
             </View>
             <View style={styles.detailItem}>
               <Ionicons name="calendar-outline" size={18} color="#6C63FF" />
@@ -294,9 +333,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
-    zIndex:100
+    zIndex: 100,
   },
-  headerTitle: { fontSize: 24, fontWeight: "700", color: "#fff", marginBottom: 4 },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 4,
+  },
   headerSubtitle: { fontSize: 14, color: "rgba(255,255,255,0.8)" },
   scrollContainer: { padding: 16, paddingTop: 60, paddingBottom: 40 },
   headerSpacer: { height: 100 },
@@ -311,31 +355,147 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  avatarSection: { flexDirection: "row", alignItems: "center", marginBottom: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: "#f0f0f0" },
+  avatarSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
   avatarContainer: { position: "relative", marginRight: 16 },
-  avatar: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: "#6C63FF" },
-  cameraIcon: { position: "absolute", bottom: 0, right: 0, backgroundColor: "#6C63FF", borderRadius: 12, padding: 4 },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: "#6C63FF",
+  },
+  cameraIcon: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: "#6C63FF",
+    borderRadius: 12,
+    padding: 4,
+  },
   userInfo: { flex: 1 },
-  userName: { fontSize: 20, fontWeight: "600", color: "#2C3E50", marginBottom: 4 },
+  userName: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#2C3E50",
+    marginBottom: 4,
+  },
   userEmail: { fontSize: 14, color: "#7F8C8D", marginBottom: 4 },
-  userRole: { fontSize: 12, color: "#6C63FF", fontWeight: "500", backgroundColor: "#f0e6ff", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, alignSelf: "flex-start" },
+  userRole: {
+    fontSize: 12,
+    color: "#6C63FF",
+    fontWeight: "500",
+    backgroundColor: "#f0e6ff",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+  },
   detailsSection: { marginBottom: 8 },
-  sectionHeader: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: "600", color: "#2C3E50", marginLeft: 8 },
-  detailItem: { flexDirection: "row", alignItems: "center", marginBottom: 12, paddingHorizontal: 4 },
-  detailLabel: { fontSize: 14, color: "#7F8C8D", marginLeft: 8, marginRight: 4, width: 100 },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#2C3E50",
+    marginLeft: 8,
+  },
+  detailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: "#7F8C8D",
+    marginLeft: 8,
+    marginRight: 4,
+    width: 100,
+  },
   detailValue: { fontSize: 14, color: "#2C3E50", fontWeight: "500", flex: 1 },
   menuSection: { marginBottom: 24 },
-  menuContainer: { backgroundColor: "#fff", borderRadius: 16, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
-  menuItem: { flexDirection: "row", alignItems: "center", padding: 16, borderBottomWidth: 1, borderBottomColor: "#f5f5f5" },
+  menuContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f5f5f5",
+  },
   menuItemLast: { borderBottomWidth: 0 },
-  menuIconContainer: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#f0e6ff", justifyContent: "center", alignItems: "center", marginRight: 12 },
+  menuIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#f0e6ff",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
   menuText: { flex: 1, fontSize: 16, color: "#2C3E50", fontWeight: "500" },
-  logoutButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#FF6B6B", padding: 16, borderRadius: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
-  logoutButtonText: { color: "#fff", fontSize: 16, fontWeight: "600", marginLeft: 8,padding:5 },
-  uploadOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center" },
-  uploadIndicator: { backgroundColor: "#fff", padding: 24, borderRadius: 16, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
-  uploadText: { fontSize: 16, color: "#2C3E50", marginTop: 12, fontWeight: "500" },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FF6B6B",
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  logoutButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+    padding: 5,
+  },
+  uploadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  uploadIndicator: {
+    backgroundColor: "#fff",
+    padding: 24,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  uploadText: {
+    fontSize: 16,
+    color: "#2C3E50",
+    marginTop: 12,
+    fontWeight: "500",
+  },
 });
 
 export default Profile;
