@@ -1,6 +1,6 @@
 {
   "busID": "BUS789",
-  "routeName": "SCAD to Alangulam",
+  "routeName": "Alangulam To  SCAD",
   "stops": [
     {
       "name": "Alangulam New bus stand",
@@ -9,7 +9,8 @@
       "km": 0,
       "nextStop": "Alangulam Old Bus Stand",
       "to_next_distance_km": 0.648,
-      "cumulative_km_to_next": 0.648
+      "cumulative_km_to_next": 0.648,
+      "scheduled_time": "7:15"
     },
     {
       "name": "Alangulam Old Bus Stand",
@@ -18,7 +19,8 @@
       "m": 600,
       "nextStop": "Nallur Villakku",
       "to_next_distance_km": 1.573,
-      "cumulative_km_to_next": 2.22
+      "cumulative_km_to_next": 2.22,
+      "scheduled_time": "7:20"
     },
     {
       "name": "Nallur Villakku",
@@ -27,7 +29,8 @@
       "km": 2.3,
       "nextStop": "Maranthai",
       "to_next_distance_km": 7.185,
-      "cumulative_km_to_next": 9.405
+      "cumulative_km_to_next": 9.405,
+      "scheduled_time": "7:25"
     },
     {
       "name": "Maranthai",
@@ -36,55 +39,53 @@
       "km": 4.5,
       "nextStop": "nalankurichi bus stop",
       "to_next_distance_km": 1.977,
-      "cumulative_km_to_next": 11.382
+      "cumulative_km_to_next": 11.382,
+      "scheduled_time": "7:30"
     },
     {
       "name": "nalankurichi bus stop",
       "lat": 8.8168514,
       "lng": 77.5460379,
-      "nextStop": "Udayampuli old bus stand",
+      "nextStop": "Udayampuli",
       "to_next_distance_km": 1.749,
-      "cumulative_km_to_next": 13.131
+      "cumulative_km_to_next": 13.131,
+      "scheduled_time": "7:33"
     },
     {
-      "name": "Udayampuli old bus stand",
+      "name": "Udayampuli",
       "lat": 8.8011802,
       "lng": 77.5447229,
-      "nextStop": "Udayampuli new bus stand",
+      "nextStop": "kathapuram",
       "to_next_distance_km": 0.233,
-      "cumulative_km_to_next": 13.363
+      "cumulative_km_to_next": 13.363,
+      "scheduled_time": "7:36"
     },
     {
-      "name": "Udayampuli new bus stand",
-      "lat": 8.80059,
-      "lng": 77.542693,
-      "nextStop": "kathapuram stop",
-      "to_next_distance_km": 1.28,
-      "cumulative_km_to_next": 14.643
-    },
-    {
-      "name": "kathapuram stop",
+      "name": "kathapuram ",
       "lat": 8.7941082,
       "lng": 77.5330692,
       "nextStop": "odaimarichan bus stop",
       "to_next_distance_km": 0.195,
-      "cumulative_km_to_next": 14.838
+      "cumulative_km_to_next": 14.838,
+      "scheduled_time": "7:48"
     },
     {
       "name": "odaimarichan bus stop",
       "lat": 8.7944059,
       "lng": 77.5313206,
-      "nextStop": "Keela Elanthaikulam",
+      "nextStop": " Elanthaikulam",
       "to_next_distance_km": 3.295,
-      "cumulative_km_to_next": 18.133
+      "cumulative_km_to_next": 18.133,
+      "scheduled_time": "7:40"
     },
     {
-      "name": "Keela Elanthaikulam",
+      "name": " Elanthaikulam",
       "lat": 8.7714501,
       "lng": 77.5502839,
       "nextStop": "thalarkulam",
       "to_next_distance_km": 1.58,
-      "cumulative_km_to_next": 19.714
+      "cumulative_km_to_next": 19.714,
+      "scheduled_time": "7:45"
     },
     {
       "name": "thalarkulam",
@@ -92,7 +93,8 @@
       "lng": 77.5359661,
       "nextStop": "singam paarai bulk stop",
       "to_next_distance_km": 2.605,
-      "cumulative_km_to_next": 22.319
+      "cumulative_km_to_next": 22.319,
+      "scheduled_time": "7:50"
     },
     {
       "name": "singam paarai bulk stop",
@@ -132,7 +134,8 @@
       "lng": 77.5234735,
       "nextStop": "mela ariyanayagi puram",
       "to_next_distance_km": 2.592,
-      "cumulative_km_to_next": 27.627
+      "cumulative_km_to_next": 27.627,
+      "scheduled_time": "7:55"
     },
     {
       "name": "mela ariyanayagi puram",

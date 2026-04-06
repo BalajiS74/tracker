@@ -5,14 +5,15 @@ import {
   View, 
   TouchableOpacity, 
   Text,
-  SafeAreaView
 } from 'react-native';
 import Markdown from "react-native-markdown-display";
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const TermsPrivacyScreen = () => {
   const [activeTab, setActiveTab] = useState('terms');
@@ -64,12 +65,17 @@ const TermsPrivacyScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
+      <LinearGradient
+        colors={["#0bc1bf", "#0a94ae"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <Text style={styles.headerTitle}>Terms & Privacy</Text>
         <Text style={styles.headerSubtitle}>
           Understand our policies and your rights
         </Text>
-      </View>
+      </LinearGradient>
 
       <View style={styles.tabContainer}>
         <TouchableOpacity
@@ -80,7 +86,7 @@ const TermsPrivacyScreen = () => {
           <Ionicons 
             name="document-text-outline" 
             size={wp('5%')} 
-            color={activeTab === 'terms' ? '#fff' : '#6C63FF'} 
+            color={activeTab === 'terms' ? '#fff' : '#0a94ae'} 
           />
           <Text style={[styles.tabText, activeTab === 'terms' && styles.activeTabText]}>
             Terms of Service
@@ -95,7 +101,7 @@ const TermsPrivacyScreen = () => {
           <Ionicons 
             name="shield-checkmark-outline" 
             size={wp('5%')} 
-            color={activeTab === 'privacy' ? '#fff' : '#6C63FF'} 
+            color={activeTab === 'privacy' ? '#fff' : '#0a94ae'} 
           />
           <Text style={[styles.tabText, activeTab === 'privacy' && styles.activeTabText]}>
             Privacy Policy
@@ -118,7 +124,7 @@ const TermsPrivacyScreen = () => {
           </View>
           
           <View style={styles.footer}>
-            <Ionicons name="information-circle" size={wp('4.5%')} color="#6C63FF" />
+            <Ionicons name="information-circle" size={wp('4.5%')} color="#0a94ae" />
             <Text style={styles.footerText}>
               Last updated: {new Date().toLocaleDateString('en-US', { 
                 year: 'numeric', 
@@ -182,25 +188,26 @@ const markdownStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#eaf8f8',
   },
   header: {
-    backgroundColor: '#6C63FF',
     paddingHorizontal: wp('5%'),
     paddingTop: hp('10%'),
-    paddingBottom: hp('2.5%'),
+    paddingBottom: hp('3%'),
     borderBottomLeftRadius: wp('5%'),
     borderBottomRightRadius: wp('5%'),
+    elevation: 4,
   },
   headerTitle: {
-    fontSize: wp('6%'),
-    fontWeight: '700',
+    fontSize: wp('6.5%'),
+    fontWeight: '800',
     color: '#fff',
-    marginBottom: hp('0.5%'),
+    marginBottom: hp('0.7%'),
   },
   headerSubtitle: {
     fontSize: wp('4%'),
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#e8f6f6',
+    lineHeight: hp('2.8%'),
   },
   container: {
     flex: 1,
@@ -213,16 +220,16 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     marginHorizontal: wp('4%'),
-    marginTop: hp('-2%'), // Positioned slightly over the header
+    marginTop: hp('-2.5%'),
     borderRadius: wp('3%'),
     overflow: 'hidden',
     backgroundColor: '#fff',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: wp('1%'),
-    elevation: 3,
-    zIndex: 10, // Ensure it appears above other content
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: wp('1.5%'),
+    elevation: 4,
+    zIndex: 10,
   },
   tab: {
     flex: 1,
@@ -231,9 +238,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: wp('2%'),
+    backgroundColor: '#fff',
   },
   activeTab: {
-    backgroundColor: '#6C63FF',
+    backgroundColor: '#0a94ae',
   },
   tabText: {
     fontSize: wp('3.8%'),

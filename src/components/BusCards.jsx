@@ -26,6 +26,7 @@ export default function BusCard({ bus = {}, onPress }) {
     const interval = setInterval(checkBusStatus, 10000);
     return () => clearInterval(interval);
   }, [checkBusStatus]);
+// console.log(bus);
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
@@ -78,8 +79,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.3)",
-    backgroundColor: "rgba(120, 90, 230, 0.3)",
+    backgroundColor: "rgba(120, 90, 230, 1)",
     overflow: "hidden",
+    //rgba(120, 90, 230, 0.3)
   },
   iconBubble: {
     width: 50,
