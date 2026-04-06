@@ -8,7 +8,8 @@
       "lng": 77.5692855,
       "nextStop": "Thambithoppu",
       "to_next_distance_km": 15.663,
-      "cumulative_km_to_next": 15.663
+      "cumulative_km_to_next": 15.663,
+      "scheduled_time": "6:30 AM"
     },
     {
       "name": "Thambithoppu",
@@ -182,12 +183,12 @@
       "name": "Pambankulam POINT",
       "lat": 8.3401004,
       "lng": 77.5879529,
-      "nextStop": "STAND",
+      "nextStop": "Stand",
       "to_next_distance_km": 1.949,
       "cumulative_km_to_next": 178.18
     },
     {
-      "name": "STAND",
+      "name": "Stand",
       "lat": 8.3249433,
       "lng": 77.5790642,
       "nextStop": "St. Joseph's Church",

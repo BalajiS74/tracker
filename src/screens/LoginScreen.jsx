@@ -1,4 +1,4 @@
-import React, { useState, useContext, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -11,10 +11,10 @@ import {
   ScrollView,
 } from "react-native";
 import Toast from "react-native-toast-message";
-import { AuthContext } from "../context/AuthContext";
+import useAuthStore from "../store/useAuthStore";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -23,7 +23,7 @@ const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
 
-  const { login } = useContext(AuthContext);
+  const { login } = useAuthStore();
   const passwordInputRef = useRef(null);
 
   // === LOGIN ===
@@ -56,7 +56,7 @@ const LoginScreen = ({ navigation }) => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
-        }
+        },
       );
 
       const text = await response.text();
@@ -74,19 +74,24 @@ const LoginScreen = ({ navigation }) => {
       }
 
       if (response.ok) {
-        // ✅ Call AuthContext login
-        login(
-          data.user,         // user object
-          data.accessToken,   // access token
-          data.refreshToken,  // refresh token
-          data.role,          // user role
-          data.relatedTo      // optional related student/family
-        );
+        // ✅ Call store login - this will update refreshToken
+        // The App.js MainStack will automatically switch to Home screen
+        await login({
+          user: data.user,
+          accessToken: data.accessToken || data.access_token,
+          refreshToken: data.refreshToken || data.refresh_token,
+          role: data.role,
+          relatedTo: data.relatedTo || data.related_to,
+        });
+
         Toast.show({
           type: "success",
           text1: "Login Successful",
           text2: `Welcome back, ${data.user?.name || "User"}`,
         });
+
+        // ❌ DO NOT navigate manually - the stack will handle it automatically
+        // The conditional rendering in App.js will show Home screen once refreshToken is set
       } else {
         Toast.show({
           type: "error",
@@ -126,7 +131,7 @@ const LoginScreen = ({ navigation }) => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, newPassword }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -165,7 +170,7 @@ const LoginScreen = ({ navigation }) => {
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
       >
-        {/* === Your UI/UX remains 100% unchanged === */}
+        {/* Header Section */}
         <View style={styles.header}>
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>Sign in to continue</Text>
@@ -215,6 +220,7 @@ const LoginScreen = ({ navigation }) => {
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                   returnKeyType="done"
+                  onSubmitEditing={handleLogin}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
@@ -313,7 +319,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#4b0082",
+    color: "#0bc1bf",
     marginBottom: 8,
   },
   subtitle: {
@@ -326,7 +332,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    color: "#4b0082",
+    color: "#333",
     marginBottom: 8,
     fontWeight: "600",
   },
@@ -350,36 +356,35 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   button: {
-    backgroundColor: "#4b0082",
+    backgroundColor: "#0bc1bf",
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 14, // Ensure enough vertical space
+    paddingVertical: 14,
     paddingHorizontal: 20,
     marginTop: 10,
-    shadowColor: "#4b0082",
+    shadowColor: "#0bc1bf",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 5,
   },
   buttonDisabled: {
-    backgroundColor: "#a78bc7",
+    backgroundColor: "#a0c4c3",
   },
   buttonText: {
-    color: "#fff", // white looks better over indigo
+    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
     textAlign: "center",
     padding: 5,
   },
-
   forgotPasswordButton: {
     alignSelf: "center",
     marginTop: 15,
   },
   forgotPasswordText: {
-    color: "#4b0082",
+    color: "#0bc1bf",
     fontSize: 14,
     fontWeight: "600",
     padding: 5,

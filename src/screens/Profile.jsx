@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useCallback, memo } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import {
   View,
   Text,
@@ -7,15 +7,15 @@ import {
   Image,
   Alert,
   Dimensions,
-  SafeAreaView,
   ScrollView,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AuthContext } from "../context/AuthContext";
+import useAuthStore from '../store/useAuthStore';
 import * as ImagePicker from "expo-image-picker";
 import DefaultProfileImage from "../images/default-profile-image.png";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const API_BASE_URL = "https://trakerbackend.onrender.com";
 const ALLOWED_IMAGE_TYPES = ["jpg", "jpeg", "png"];
@@ -43,10 +43,11 @@ const MenuItem = memo(({ icon, text, onPress, isLast }) => (
 ));
 
 const Profile = () => {
-  const { user, userToken, refreshUser, logout } = useContext(AuthContext);
+  const { user, logout, accessToken } = useAuthStore();
   const navigation = useNavigation();
   const [avatarUri, setAvatarUri] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+// console.log(user);
 
   // Load avatar from AsyncStorage or user object
   useEffect(() => {
@@ -66,6 +67,7 @@ const Profile = () => {
     loadAvatar();
   }, [user]);
 
+  
   // Image picker
   const pickImage = async () => {
     const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -195,7 +197,7 @@ const Profile = () => {
           {/* Avatar Section */}
           <View style={styles.avatarSection}>
             <TouchableOpacity
-              onPress={pickImage}
+              // onPress={pickImage}
               style={styles.avatarContainer}
               disabled={isUploading}
             >

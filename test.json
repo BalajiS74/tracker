@@ -1,0 +1,101 @@
+[
+    {
+        "deviceId": "Bus1314",
+        "routeName": "Scad to Sevval",
+        "stops": [
+            {
+                "cumulative_km_to_next": 1.291,
+                "isStartingPoint": true,
+                "lat": 8.674796453733085,
+                "lng": 77.5651053339243,
+                "m": 0,
+                "name": "Cheranmahadevi",
+                "nextStop": "Scad poly",
+                "to_next_distance_km": 1.291
+            },
+            {
+                "cumulative_km_to_next": 1.291,
+                "isStartingPoint": false,
+                "lat": 8.663378811763092,
+                "lng": 77.56725143641233,
+                "m": 1,
+                "name": "Scad poly",
+                "nextStop": null,
+                "to_next_distance_km": 0
+            }
+        ]
+    },
+    {
+        "id": "1774336888947",
+        "routeName": "Scad to cheranmahadevi ",
+        "stops": [
+            {
+                "cumulative_km_to_next": 0.538,
+                "isStartingPoint": true,
+                "lat": 8.687765171979981,
+                "lng": 77.56611853837967,
+                "m": 0,
+                "name": "Stop 1",
+                "nextStop": "Stop 2",
+                "to_next_distance_km": 0.538
+            },
+            {
+                "cumulative_km_to_next": 1.447,
+                "isStartingPoint": false,
+                "lat": 8.683011121064359,
+                "lng": 77.56520625203848,
+                "m": 1,
+                "name": "Stop 2",
+                "nextStop": "Stop 3",
+                "to_next_distance_km": 0.909
+            },
+            {
+                "cumulative_km_to_next": 1.447,
+                "isStartingPoint": false,
+                "lat": 8.674836889493637,
+                "lng": 77.56507616490126,
+                "m": 2,
+                "name": "Stop 3",
+                "nextStop": null,
+                "to_next_distance_km": 0
+            }
+        ]
+    },
+    {
+        "deviceId": "Device1",
+        "id": "1774523544623",
+        "routeName": "Cheranmahadevi",
+        "stops": [
+            {
+                "cumulative_km_to_next": 0.91,
+                "isStartingPoint": true,
+                "lat": 8.674829597799443,
+                "lng": 77.56510566920042,
+                "m": 0,
+                "name": "Cheranmahadevi ",
+                "nextStop": "Stop 2",
+                "to_next_distance_km": 0.91
+            },
+            {
+                "cumulative_km_to_next": 1.435,
+                "isStartingPoint": false,
+                "lat": 8.683008469596958,
+                "lng": 77.56521496921778,
+                "m": 1,
+                "name": "Stop 2",
+                "nextStop": "Stop 3",
+                "to_next_distance_km": 0.526
+            },
+            {
+                "cumulative_km_to_next": 1.435,
+                "isStartingPoint": false,
+                "lat": 8.687640554571184,
+                "lng": 77.56617520004511,
+                "m": 2,
+                "name": "Stop 3",
+                "nextStop": null,
+                "to_next_distance_km": 0
+            }
+        ]
+    },
+]
